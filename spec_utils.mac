@@ -1,0 +1,5307 @@
+#%TITLE% SPEC_UTILS.MAC
+#
+#%NAME%
+#
+#
+#
+#
+#%CATEGORY% TOOLS
+#
+#
+#%DESCRIPTION%
+#
+#
+#%DL%
+# %DT% * Collection of usefull macros to program with SPEC. %DD%
+# %DT% * Please add your favorite macros. %DD%
+# %DT% * Majority of macros have a test function. %DD%
+# %DT% * Please add pertinent tests. %DD%
+#%XDL%
+#
+#%END%
+#
+
+#  To split ???
+
+
+######################################################################
+#############################             ############################
+#############################  FULL TEST  ############################
+#############################             ############################
+######################################################################
+
+
+#%UU%
+#%MDESC%
+#    Launch a set of tests of spec_utils macros.
+def spec_utils_test '{
+
+
+    print_boxed(" INTROSPECTION ", -1)
+    wwwhat_test
+
+    print_boxed(" TACO ", -1)
+    taco_state_to_number_to_state_test()
+
+    print_boxed(" TANGO ", -1)
+    is_tango_ds_test
+    tango_state_to_number_to_state_test()
+
+    print_boxed(" MATH ", -1)
+    math_test
+    rounding_test(3)
+
+    print_boxed(" STRINGS ", -1)
+    removeEndingCharTests()
+
+
+    print_boxed(" CASE ", -1)
+    tolower_test()
+
+    print_boxed(" TYPE CHECKING ", -1)
+    is_type_test_suite()
+
+    print_boxed(" INPUTS ", -1)
+    # interactive..
+    # getval_list_test()
+
+    print_boxed(" BEAMLINE ", -1)
+    beamline_info_test
+
+    print_boxed(" MESSAGES ", -1)
+    notice_test
+    countdown(3)
+
+    print_boxed(" COLOR PRINTING ", -1)
+
+    print_boxed(" TEXT FORMATING ", -1)
+    print_centered_test
+    print_boxed_test
+    print_aligned_test
+    print_start_info_test
+    #?formated_text_tests
+
+
+
+    print_boxed(" DATE / TIME ", -1)
+    date_test()
+
+    print_boxed(" BIT MANIPULATION ", -1)
+
+    print_boxed(" MOTORS ", -1)
+
+    print_boxed(" COUNTERS ", -1)
+
+    test_ux2dos_pathname_conversion
+
+}'
+
+
+######################################################################
+###########################                 ##########################
+###########################  INTROSPECTION  ##########################
+###########################                 ##########################
+######################################################################
+
+
+
+#%UU% <symbol>
+#%MDESC%
+#    Prints infos about <symbol>.
+def wwwhat '{
+    local _w
+
+    _w = whatis("$1")
+
+    print ""
+    print "$1" ":" _w
+
+    if(_w == 0){
+        print "Not a command, macro or keyword"
+    }
+    else{
+        if(_w & 0x0001){
+            print "0x0001 : Command or keyword"
+        }
+        else{
+            if(_w & 0x0002){
+                print "0x0002 : Macro, size=" _w >> 16
+            }
+            else{
+                if(_w & 4)
+                    print "0x0000 0004 : variable"
+
+                if(_w >> 16 & 0x8000)
+                    print "0x8000 0000 : Associative array element"
+
+                if(_w >> 16 & 0x4000)
+                    print "0x4000 0000 : Local"
+
+                if(_w >> 16 & 0x2000)
+                    print "0x2000 0000 : Immutable"
+
+                if(_w >> 16 & 0x0800)
+                    print "0x0800 0000 : Unset"
+
+                if(_w >> 16 & 0x0400)
+                    print "0x0400 0000 : Global"
+
+                if(_w >> 16 & 0x0200)
+                    print "0x0200 0000 : Built-in"
+
+                if(_w >> 16 & 0x0100)
+                    print "0x0100 0000 : Associative array"
+
+                if(_w >> 16 & 0x0040)
+                    print "0x0040 0000 : Constant-valued"
+
+                if(_w >> 16 & 0x0020)
+                    print "0x0020 0000 : String-valued"
+
+                if(_w >> 16 & 0x0010)
+                    print "0x0010 0000 : Number-valued"
+
+                if(_w >> 16 & 0x0001)
+                    print "0x0001 0000 : New-style data array"
+            }
+        }
+    }
+}'
+
+
+#%UU% (<macro_name>)
+#%MDESC%
+#    Returns the file from where the macro is taken
+# ???????? (without the "#" of prdef)
+def spec_utils_which(macro_name) '{
+    local _ret
+
+    unix("/bin/rm -f /tmp/piped")
+    on("/tmp/piped");offt;
+    unix("chmod 777 /tmp/piped")
+
+    eval (sprintf("prdef %s", macro_name))
+    close("/tmp/piped");ont;
+
+    unix("cat /tmp/piped | sed  -ne \'2 p\'", _ret)
+    unix("/bin/rm -f /tmp/piped")
+
+    return (_ret)
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs tests on wwwhat
+def wwwhat_test '{
+    global lolo lala lulu
+
+    local tutu toto tata
+
+
+    toto = 4
+    tata = "tretFdsfs"
+
+    lala = 3
+    lulu = "frefds"
+
+    wwwhat wwwhat_test
+    wwwhat "for"
+
+    wwwhat lolo
+    wwwhat lala
+    wwwhat lulu
+
+    wwwhat tutu
+    wwwhat toto
+    wwwhat tata
+}'
+
+
+#%UU% (<symbol_name>)
+#%MDESC%
+#    Returns 1 if symbol <symbol_name> exists in the current SPEC
+# session.  Returns 0 otherwise.
+def symbol_exists(symbol_name) '{
+    local _path
+
+    if (whatis(symbol_name) & 0x04100004){
+        # symbol_name is a variable
+        return (1)
+    }
+    else if (whatis(symbol_name) & 0x0002) {
+        # symbol_name is a macro.
+        return (1)
+    }
+    else{
+        # Ok this symbol does not exist.
+        return (0)
+    }
+}'
+
+
+#%IU% (<symbol_name>, <file>)
+#%MDESC%
+#    Returns 1 if symbol <symbol_name> is defined in file <file>.
+def symbol_in_file(symbol_name, file) '{
+    local _path
+
+    _path = spec_utils_which(symbol_name)
+
+
+    if (index(_path, file)){
+        # print "symbol in file "
+        return (1)
+    }
+    else{
+        # print "symbol not in file "
+        return (0)
+    }
+}'
+
+
+#%IU% (<symbol_name>, <file_name>)
+#%MDESC%
+#    Checks if <symbol_name> macro has to be defined.
+def symbol_to_define(symbol_name, file_name) '{
+
+    if (symbol_exists(symbol_name)) {
+
+        if (symbol_in_file(symbol_name, file_name))  {
+            # print "# exists and in file => redefine"
+            return (1)
+        }
+        else{
+            print ""
+            print ""
+            printf ("# \"%s\" exists but is not the spec_utils.mac one => PROBLEM\n", symbol_name)
+            print "---------------------------------------------------------------------------"
+            print "------------Warning \""symbol_name"\" already defined.---------------------"
+            print "--------can you consider changing the name of your symbol or macro ?-------"
+            print "------ It must be a standard macro. If you do not agree, ------------------"
+            print "-------it is a good idea to discuss about that with me. -------------------"
+            print "--------------------------------- cyril guilloud (spec_utils packager)-----"
+            print "---------------------------------------------------------------------------"
+            print ""
+            print ""
+            print ""
+
+            return (0)
+        }
+    }
+    else{
+        # print "# not exist => to be defined."
+        return (1)
+    }
+}'
+
+
+#%IU% (<sname>, <print_error>)
+#%MDESC%
+#    Returns 1 (0) depending if function is called (not) from
+# session <sname>.
+# if <print_error> then print an error message.
+def in_spec_session(sname, print_error) '{
+
+    if (SPEC == sname)
+        return (1)
+
+    if (print_error)
+        print "Error: not in session", sname
+
+    return (0)
+}'
+
+
+# Saves state of SPEC session to find memory problems.
+def help_css '{
+   savstate
+   unix(sprintf("show_state -D %s -u %s -g %s -t esrf >/tmp/%s.state", SPECD, USER, SPEC, date(\"%Y-%m-%d-%T\")))
+   printf("state saved in /tmp/%s.state\n", date(\"%Y-%m-%d-%T\"))
+}'
+
+######################################################################
+###########################                 ##########################
+###########################  SPEC VERSIONS  ##########################
+###########################                 ##########################
+######################################################################
+
+# Returns 1 if version in use is newer (or equal) to specified version
+# <major>, <minor>, <patch>
+def spec_version_newer_than(major, minor, patch) '{
+    local TTT[]
+    local using_major using_minor using_patch
+
+    split(VERSION, TTT, ".")
+    using_major = int(TTT[0])
+    using_minor = int(TTT[1])
+    using_patch = int(TTT[2])
+
+    if (using_major > major){
+        return 1
+    }
+    else if(using_major < major){
+        return 0
+    }
+    else{
+        # print "Same major."
+        if (using_minor > minor){
+            return 1
+        }
+        else if(using_minor < minor){
+            return 0
+        }
+        else{
+            # print "Same major and same minor."
+            if (using_patch >= patch){
+                # print "patch newer or equal"
+                return 1
+            }
+        }
+    }
+    return 0
+}'
+
+
+
+def spec_version_test '{
+    local using_major using_minor using_patch
+    print "SPEC VERSION = " VERSION
+
+    split(VERSION, TTT, ".")
+    using_major = int(TTT[0])
+    using_minor = int(TTT[1])
+    using_patch = int(TTT[2])
+
+    _spec_version_test_func(6, 5, 1)
+    _spec_version_test_func(6, 5, 2)
+    _spec_version_test_func(6, 5, 3)
+    _spec_version_test_func(5, 5, 1)
+    _spec_version_test_func(5, 5, 2)
+    _spec_version_test_func(5, 5, 3)
+    _spec_version_test_func(7, 5, 1)
+    _spec_version_test_func(7, 5, 2)
+    _spec_version_test_func(7, 5, 3)
+    _spec_version_test_func(0, 0, 0)
+    _spec_version_test_func(0, 0, 1)
+    _spec_version_test_func(0, 0, 2)
+    _spec_version_test_func(0, 0, 3)
+
+}'
+
+
+def _spec_version_test_func(major, minor, patch) '{
+
+    if (spec_version_newer_than(major, minor, patch)){
+        printf ("newer than %s %s %s (or equal)\n", major, minor, patch)
+    }
+    else{
+        printf ("older than %s %s %s\n", major, minor, patch)
+    }
+
+}'
+
+
+
+######################################################################
+###############################        ###############################
+###############################  TACO  ###############################
+###############################        ###############################
+######################################################################
+
+# from DevStates.h
+
+#   #define DEVUNKNOWN         0
+#   #define DEVOFF             1
+#   #define DEVON              2
+#   #define DEVCLOSE           3
+#   #define DEVOPEN            4
+#   #define DEVLOW             5
+#   #define DEVHIGH            6
+#   #define DEVINSERTED        7
+#   #define DEVEXTRACTED       8
+#   #define DEVMOVING          9
+#   #define DEVWARMUP         10
+#   #define DEVINIT           11
+#   #define DEVSTANDBY        12
+#   #define DEVSERVICE        13
+#   #define DEVRUN            14
+#   #define DEVLOCAL          15
+#   #define DEVREMOTE          16
+#   #define DEVAUTOMATIC        17
+#   #define DEVRAMP              18
+#   #define DEVTRIPPED           19
+#   #define DEVHV_ENABLE         20
+#   #define DEVBEAM_ENABLE       21
+#   #define DEVBLOCKED            22
+#   #define DEVFAULT               23
+#   #define DEVSTARTING             24
+#   #define DEVSTOPPING             25
+#   #define DEVSTARTREQUESTED       26      /* startup sequence requested but
+#                                              not initialised */
+#   #define DEVSTOPREQUESTED        27      /* stop sequence requested but
+#                                              not initialised */
+#   #define DEVPOSITIVEENDSTOP      28
+#   #define DEVNEGATIVEENDSTOP      29
+#   #define DEVBAKEREQUESTED        30   /* bake requested but not yet started */
+#   #define DEVBAKEING              31   /* channel is bakeing */
+#   #define DEVSTOPBAKE             32   /* channel bake is stopping */
+#   #define DEVFORCEDOPEN           33
+#   #define DEVFORCEDCLOSE          34
+#   #define DEVOFFUNAUTHORISED      35    /* off, restarting not authorised */
+#   #define DEVONNOTREGULAR         36    /* on, temp not regulated  */
+#   #define DEVRESETTING            37    /* resetting */
+#   #define DEVFORBIDDEN            38
+#   #define DEVOPENING              39
+#   #define DEVCLOSING              40
+#   #define DEVUNDEFINED            41
+#   #define DEVCOUNTING             42      /* Device counting */
+#   #define STOPPED                 43      /* Device stopped  */
+#   #define RUNNING                 44      /* Device running */
+#   #define DEVALARM                45      /* Powersupply in alarm */
+#   #define DEVDISABLED             46
+#   #define DEVSTANDBY_NOT_REACHED  47
+#   #define DEVON_NOT_REACHED       48
+
+
+#%UU% (<taco_state_string>)
+#%MDESC%
+#    Returns a number corresponding to the Taco state string
+# <taco_state_string>.
+def taco_str_to_state_number(taco_state_string) '{
+    local _taco_number
+
+    if     (taco_state_string == "UNKNOWN"         )       _taco_number =  0
+    else if(taco_state_string == "OFF"             )       _taco_number =  1
+    else if(taco_state_string == "ON"              )       _taco_number =  2
+    else if(taco_state_string == "CLOSE"           )       _taco_number =  3
+    else if(taco_state_string == "OPEN"            )       _taco_number =  4
+    else if(taco_state_string == "LOW"             )       _taco_number =  5
+    else if(taco_state_string == "HIGH"            )       _taco_number =  6
+    else if(taco_state_string == "INSERTED"        )       _taco_number =  7
+    else if(taco_state_string == "EXTRACTED"       )       _taco_number =  8
+    else if(taco_state_string == "MOVING"          )       _taco_number =  9
+    else if(taco_state_string == "WARMUP"          )       _taco_number = 10
+    else if(taco_state_string == "INIT"            )       _taco_number = 11
+    else if(taco_state_string == "STANDBY"         )       _taco_number = 12
+    else if(taco_state_string == "SERVICE"         )       _taco_number = 13
+    else if(taco_state_string == "RUN"             )       _taco_number = 14
+    else if(taco_state_string == "LOCAL"           )       _taco_number = 15
+    else if(taco_state_string == "REMOTE"          )       _taco_number = 16
+    else if(taco_state_string == "AUTOMATIC"       )       _taco_number = 17
+    else if(taco_state_string == "RAMP"            )       _taco_number = 18
+    else if(taco_state_string == "TRIPPED"         )       _taco_number = 19
+    else if(taco_state_string == "HV_ENABLE"       )       _taco_number = 20
+    else if(taco_state_string == "BEAM_ENABLE"     )       _taco_number = 21
+    else if(taco_state_string == "BLOCKED"         )       _taco_number = 22
+    else if(taco_state_string == "FAULT"           )       _taco_number = 23
+    else if(taco_state_string == "STARTING"        )       _taco_number = 24
+    else if(taco_state_string == "STOPPING"        )       _taco_number = 25
+    else if(taco_state_string == "STARTREQUESTED"  )       _taco_number = 26
+    else if(taco_state_string == "STOPREQUESTED"   )       _taco_number = 27
+    else if(taco_state_string == "POSITIVEENDSTOP" )       _taco_number = 28
+    else if(taco_state_string == "NEGATIVEENDSTOP" )       _taco_number = 29
+    else if(taco_state_string == "BAKEREQUESTED"   )       _taco_number = 30
+    else if(taco_state_string == "BAKEING"         )       _taco_number = 31
+    else if(taco_state_string == "STOPBAKE"        )       _taco_number = 32
+    else if(taco_state_string == "FORCEDOPEN"      )       _taco_number = 33
+    else if(taco_state_string == "FORCEDCLOSE"     )       _taco_number = 34
+    else if(taco_state_string == "OFFUNAUTHORISED" )       _taco_number = 35
+    else if(taco_state_string == "ONNOTREGULAR"    )       _taco_number = 36
+    else if(taco_state_string == "RESETTING"       )       _taco_number = 37
+    else if(taco_state_string == "FORBIDDEN"       )       _taco_number = 38
+    else if(taco_state_string == "OPENING"         )       _taco_number = 39
+    else if(taco_state_string == "CLOSING"         )       _taco_number = 40
+    else if(taco_state_string == "UNDEFINED"       )       _taco_number = 41
+    else if(taco_state_string == "COUNTING"        )       _taco_number = 42
+    else if(taco_state_string == "STOPPED"         )       _taco_number = 43
+    else if(taco_state_string == "RUNNING"         )       _taco_number = 44
+    else if(taco_state_string == "ALARM"           )       _taco_number = 45
+    else if(taco_state_string == "DISABLED"        )       _taco_number = 46
+    else if(taco_state_string == "STANDBY_NOT_REACHED" )   _taco_number = 47
+    else if(taco_state_string == "ON_NOT_REACHED"  )       _taco_number = 48
+    else{
+        _taco_number = -1
+    }
+
+    return (_taco_number)
+
+}'
+
+#%UU% (<taco_state_number>)
+#%MDESC%
+#    Returns a string of the Taco state corresponding to
+#    <taco_state_number>.
+def taco_state_to_str(taco_state_number) '{
+    local _strs
+
+    if (taco_state_number == 0)       _strs = "UNKNOWN"
+    else if(taco_state_number ==  1)  _strs = "OFF"
+    else if(taco_state_number ==  2)  _strs = "ON"
+    else if(taco_state_number ==  3)  _strs = "CLOSE"
+    else if(taco_state_number ==  4)  _strs = "OPEN"
+    else if(taco_state_number ==  5)  _strs = "LOW"
+    else if(taco_state_number ==  6)  _strs = "HIGH"
+    else if(taco_state_number ==  7)  _strs = "INSERTED"
+    else if(taco_state_number ==  8)  _strs = "EXTRACTED"
+    else if(taco_state_number ==  9)  _strs = "MOVING"
+    else if(taco_state_number == 10)  _strs = "WARMUP"
+    else if(taco_state_number == 11)  _strs = "INIT"
+    else if(taco_state_number == 12)  _strs = "STANDBY"
+    else if(taco_state_number == 13)  _strs = "SERVICE"
+    else if(taco_state_number == 14)  _strs = "RUN"
+    else if(taco_state_number == 15)  _strs = "LOCAL"
+    else if(taco_state_number == 16)  _strs = "REMOTE"
+    else if(taco_state_number == 17)  _strs = "AUTOMATIC"
+    else if(taco_state_number == 18)  _strs = "RAMP"
+    else if(taco_state_number == 19)  _strs = "TRIPPED"
+    else if(taco_state_number == 20)  _strs = "HV_ENABLE"
+    else if(taco_state_number == 21)  _strs = "BEAM_ENABLE"
+    else if(taco_state_number == 22)  _strs = "BLOCKED"
+    else if(taco_state_number == 23)  _strs = "FAULT"
+    else if(taco_state_number == 24)  _strs = "STARTING"
+    else if(taco_state_number == 25)  _strs = "STOPPING"
+    else if(taco_state_number == 26)  _strs = "STARTREQUESTED"
+    else if(taco_state_number == 27)  _strs = "STOPREQUESTED"
+    else if(taco_state_number == 28)  _strs = "POSITIVEENDSTOP"
+    else if(taco_state_number == 29)  _strs = "NEGATIVEENDSTOP"
+    else if(taco_state_number == 30)  _strs = "BAKEREQUESTED"
+    else if(taco_state_number == 31)  _strs = "BAKEING"
+    else if(taco_state_number == 32)  _strs = "STOPBAKE"
+    else if(taco_state_number == 33)  _strs = "FORCEDOPEN"
+    else if(taco_state_number == 34)  _strs = "FORCEDCLOSE"
+    else if(taco_state_number == 35)  _strs = "OFFUNAUTHORISED"
+    else if(taco_state_number == 36)  _strs = "ONNOTREGULAR"
+    else if(taco_state_number == 37)  _strs = "RESETTING"
+    else if(taco_state_number == 38)  _strs = "FORBIDDEN"
+    else if(taco_state_number == 39)  _strs = "OPENING"
+    else if(taco_state_number == 40)  _strs = "CLOSING"
+    else if(taco_state_number == 41)  _strs = "UNDEFINED"
+    else if(taco_state_number == 42)  _strs = "COUNTING"
+    else if(taco_state_number == 43)  _strs = "STOPPED"
+    else if(taco_state_number == 44)  _strs = "RUNNING"
+    else if(taco_state_number == 45)  _strs = "ALARM"
+    else if(taco_state_number == 46)  _strs = "DISABLED"
+    else if(taco_state_number == 47)  _strs = "STANDBY_NOT_REACHED"
+    else if(taco_state_number == 48)  _strs = "ON_NOT_REACHED"
+    else{
+        _strs = "UNKNOWN STATE NUMBER"
+    }
+
+    return (_strs)
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Tests taco_state_to_str and taco_str_to_state_number on 0..48 taco states.
+def taco_state_to_number_to_state_test() '{
+    local ii
+
+    for (ii=0 ; ii<49 ; ii++){
+        printf("taco state number/str/number : %d / %s / %d \n",        \
+               ii,                                                      \
+               taco_state_to_str(ii),                                   \
+               taco_str_to_state_number(taco_state_to_str(ii)))
+    }
+}'
+
+######################################################################
+###############################         ##############################
+###############################  TANGO  ##############################
+###############################         ##############################
+######################################################################
+
+
+#%UU% (<ds_name>)
+#%MDESC%
+#    Test if a DS is a Tango one.
+# Returns 1 if yes
+# Returns 0 if NO or it is unresposive.
+
+# !!! depend on SPEC version...
+# 5.08.06-6 -> does not work.
+
+def ds_is_tango(ds_name) '{
+
+    # -1 (number) no more allowed...
+    TANGO_ERR = "-1"
+
+    tango_io(ds_name, "State")
+
+    if(TANGO_ERR == "API_DeviceNotExported" || TANGO_ERR == "DB_DeviceNotDefined" || TANGO_ERR == "API_WrongDeviceNameSyntax"){
+        return (0)
+    }
+    else{
+        return (1)
+    }
+}'
+
+
+#%UU% (<ds_name>)
+#%MDESC%
+#    Test if a DS is a Taco one.
+# Returns 1 if yes
+# Returns 0 if NO or it is unresposive.
+def ds_is_taco(ds_name) '{
+
+    ESRF_ERR = "-1"
+    esrf_io(ds_name, "DevState")
+
+
+    if(ESRF_ERR){
+        return (0)
+    }
+    else{
+        return (1)
+    }
+}'
+
+
+#%UU% (<ds_name>)
+#%MDESC%
+#    Test if a DS (taco or tango) is responsive.
+# Returns 1 if YES
+# Returns 0 if NO
+def ds_is_responsive(ds_name) '{
+
+# hummm PB :
+# ok : "taco://orion:10000/sr/d-fbpm/id16"  (tango DS)
+# nok : "//orion:10000/sr/d-fbpm/id16"    (tango DS)
+#
+
+    if (ds_is_taco(ds_name) || ds_is_tango(ds_name)){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%UU% (<ds_name>)
+#%MDESC%
+#    Test if a responsive DS is taco or tango.
+# Returns "TANGO" or "TACO" or "UNRESPONSIVE".
+def ds_is_what(ds_name) '{
+    if(ds_is_responsive(ds_name)){
+        if(ds_is_taco(ds_name)){
+            return ("TACO")
+        }
+        else if(ds_is_tango(ds_name)){
+            return ("TANGO")
+        }
+        else{
+            print "Y A UN PROBLEME"
+        }
+    }
+    else{
+        return ("UNRESPONSIVE")
+    }
+}'
+
+
+#%UU%
+#%MDESC%
+#
+def is_tango_ds_test '{
+    local TTT[]
+    TTT[0] = "id22/xmap/3"  # taco
+    TTT[1] = "id22/pen/21"  # tango
+    TTT[2] = "id22/toto/2"  # unexisting
+
+    print ""
+    for (i in TTT) {
+        if(ds_is_tango(TTT[i])){
+            printf ("%s is tango and running\n",TTT[i] )
+        }
+        else{
+            printf ("%s is not tango or not running\n",TTT[i] )
+        }
+        print ""
+    }
+
+}'
+
+
+#%UU% <tango_state>
+#%MDESC%
+#    Returns the string corresponding to the tango state <tango_state>
+def tango_state_to_str(tango_state)'{
+    local _strs
+
+    if (tango_state == -1)        _strs = "FAULT"
+    else if(tango_state == 0)     _strs = "ON"
+    else if(tango_state == 1)     _strs = "OFF"
+    else if(tango_state == 2)     _strs = "CLOSED"
+    else if(tango_state == 3)     _strs = "OPEN"
+    else if(tango_state == 4)     _strs = "INSERT"
+    else if(tango_state == 5)     _strs = "EXTRACT"
+    else if(tango_state == 6)     _strs = "MOVING"
+    else if(tango_state == 7)     _strs = "STANDBY"
+    else if(tango_state == 8)     _strs = "FAULT"
+    else if(tango_state == 9)     _strs = "INIT"
+    else if(tango_state == 10)    _strs = "RUNNING"
+    else if(tango_state == 11)    _strs = "ALARM"
+    else if(tango_state == 12)    _strs = "DISABLED"
+    else if(tango_state == 13)    _strs = "UNKNOWN"
+    else                          _strs = "????"
+
+    return (_strs)
+}'
+
+
+#%UU% <tango_state_string>
+#%MDESC%
+#    Returns the Tango state number corresponding to the
+# string <tango_state_string>.
+def tango_str_to_state(tango_state_string)'{
+    local _state_nb
+
+    #print "str to convert: " tango_state_string
+
+
+    # FAULT -> 8 or -1 ???
+
+    if (tango_state_string == "FAULT")
+        _state_nb = -1
+    else if(tango_state_string == "ON")
+        _state_nb = 0
+    else if(tango_state_string == "OFF")
+        _state_nb = 1
+    else if(tango_state_string == "CLOSED")
+        _state_nb = 2
+    else if(tango_state_string == "OPEN")
+        _state_nb = 3
+    else if(tango_state_string == "INSERT")
+        _state_nb = 4
+    else if(tango_state_string == "EXTRACT")
+        _state_nb = 5
+    else if(tango_state_string == "MOVING")
+        _state_nb = 6
+    else if(tango_state_string == "STANDBY")
+        _state_nb = 7
+    else if(tango_state_string == "FAULT")
+        _state_nb = 8
+    else if(tango_state_string == "INIT")
+        _state_nb = 9
+    else if(tango_state_string == "RUNNING")
+        _state_nb = 10
+    else if(tango_state_string == "ALARM")
+        _state_nb = 11
+    else if(tango_state_string == "DISABLED")
+        _state_nb = 12
+    else if(tango_state_string == "UNKNOWN")
+        _state_nb = -1
+
+    #print "returned number = " _state_nb
+    return _state_nb
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Tests tnago_state_to_str and tango_str_to_state_number on -1..12 tango states.
+def tango_state_to_number_to_state_test() '{
+    local ii
+
+    for (ii=-1 ; ii<13 ; ii++){
+        printf("Tango state number/str/number : %2d / %10s / %2d \n",        \
+               ii,                                                      \
+               tango_state_to_str(ii),                                   \
+               tango_str_to_state(tango_state_to_str(ii)))
+    }
+}'
+
+
+#%UU% <tango_state>
+#%MDESC%
+#    <tango_state> must be a number
+def tango_cprint_state(tango_state) '{
+
+    # print "number to print" tango_state
+
+    if (tango_state == -1){
+        #
+        cprint("FAULT", 1)
+    }
+    else if(tango_state == 0){
+        #
+        cprint("ON", 1)
+    }
+    else if(tango_state == 1){
+        #
+        cprint("OFF", 1)
+    }
+    else if(tango_state == "2"){
+        # white
+        cprint("CLOSED", 7, 8, 3)
+    }
+    else if(tango_state == 3){
+        # green
+        cprint("OPEN", 8, 8, 3)
+    }
+    else if(tango_state == 4){
+        #
+        cprint("INSERT", 1)
+    }
+    else if(tango_state == 5){
+        #
+        cprint("EXTRACT", 1)
+    }
+    else if(tango_state == 6){
+        # orange
+        cprint("MOVING", 1)
+    }
+    else if(tango_state == 7){
+        #
+        cprint("STANDBY", 1)
+    }
+    else if(tango_state == 8){
+        # red
+        cprint("FAULT", 1, 8, 1)
+    }
+    else if(tango_state == 9){
+        #
+        cprint("INIT", 1)
+    }
+    else if(tango_state == 10){
+        #
+        cprint("RUNNING", 1)
+    }
+    else if(tango_state == 11){
+        #
+        cprint("ALARM", 1)
+    }
+    else if(tango_state == 12){
+        # lila
+        cprint("DISABLED", 1)
+    }
+    else if(tango_state == 13){
+        cprint("UNKNOWN",1)
+    }
+    else{
+        # ???
+        cprint("????", 1)
+    }
+
+}'
+
+
+
+######################################################################
+###############################        ###############################
+###############################  MATH  ###############################
+###############################        ###############################
+######################################################################
+
+
+
+#%UU%
+#%MDESC%
+#    Performs a set of tests on math functions.
+def math_test '{
+    printf("min2(3,  5)=                        %d \n",  min2(3,  5)                        )
+    printf("max2(3,  5)=                        %d \n",  max2(3,  5)                        )
+    printf("min3(-4, 8.1, 44)=                  %d \n",  min3(-4, 8.1, 44)                  )
+    printf("max3(4,  8.3, 9.2)=                 %d \n",  max3(4,  8.3, 9.2)                 )
+    printf("supermin(1, -3, 4)=                 %d \n",  supermin(1, -3, 4)                 )
+    printf("is_aprox(3.0002, 3.0001, 0.0001)  = %d \n",  is_aprox(3.0002, 3.0001, 0.0001))
+    printf("is_aprox(1.1-1, 0.1, 0.00005)   =   %d \n", is_aprox(1.1-1, 0.1, 0.00005))
+    printf("is_aprox(1.1-1, 0.1, 1e-20) =       %d \n",   is_aprox(1.1-1, 0.1, 1e-20))
+
+}'
+
+
+# (<x> , <y> , <tol>)
+#%MDESC% checks if two numbers are "almost" equal
+def is_aprox(x, y, tol) '{
+    return (fabs(x - y) <= tol)
+}'
+
+
+#%UU% (<x>, <y>)
+#%MDESC%
+#    Returns the minimum of the 2 values <x> and <y>.
+def min2(x, y) '{
+    if(x < y){
+        return (x)
+    }
+    else{
+        return (y)
+    }
+}'
+
+
+#%UU% (<x>, <y>, <z>)
+#%MDESC%
+#    Returns the minimum of the 3 values <x>, <y> and <z>.
+def min3(_min3_x, _min3_y, _min3_z) '{
+    local _min
+
+    if (  !( ( whatis("_min3_z") & 0x8000000) >> 27)  ) {
+        # print "z exists"
+        _min = min2( min2(_min3_x, _min3_y) , _min3_z)
+    }
+    else{
+        # print "no z"
+        if (  !( ( whatis("_min3_y") & 0x8000000) >> 27)  ) {
+            # print "y exists"
+            _min = min2(_min3_x, _min3_y)
+        }
+        else{
+            # print "no y neither"
+            _min = _min3_x
+        }
+    }
+
+    return (_min)
+}'
+
+
+#%UU% (<x>, <y>)
+#%MDESC%
+#    Returns the maximum of the 2 values <x> and <y>.
+def max2(x, y) '{
+    if(x > y){
+        return (x)
+    }
+    else{
+        return (y)
+    }
+}'
+
+#%UU% (<x>, <y>, <z>)
+#%MDESC%
+#    Returns the maximum of the 3 values <x>, <y> and <z>.
+def max3(x, y, z) '{
+    local local_max
+
+    if (x >= y){
+        local_max = x
+    }
+    else{
+        local_max = y
+    }
+
+    if (local_max >= z){
+        return(local_max)
+    }
+    else{
+        return (z)
+    }
+}'
+
+
+#%UU% (<a>,<b>,<c>)
+#%MDESC%
+#    min of 2 or 3 values. (from ZAP _zap_min())
+def supermin(a, b, c) '{
+    local local_min
+
+    if (a <= b){
+        local_min = a
+    }
+    else{
+        local_min = b
+    }
+
+    if (!((whatis("c")&0x8000000)>>27)) {
+        if (local_min <= c){
+            return(local_min)
+        }
+        else{
+            return (c)
+        }
+    }
+
+    return(local_min)
+}'
+
+
+
+######################################################################
+##########################                   #########################
+##########################  MATH  : MODULUS  #########################
+##########################                   #########################
+######################################################################
+
+
+#%IU% (x,d)
+#%MDESC% This calculates the difference between x and and the closest
+# integer multiple of d.
+def signed_modulus(x,d) '{
+    return (x - round_next(x,d))
+}'
+
+
+#%IU% (x,d)
+#%MDESC% Modulus, calculate reminder of modular division of x by d,
+# Similar to SPEC`s % operator, but works also for non-integer and negative
+# numbers, the returned value is always positive
+def mod(x,d) '{
+    local mod
+    mod  = x - int(x/d)*d
+
+    if (mod < 0){
+        mod = d + mod
+    }
+
+    return (mod)
+}'
+
+
+######################################################################
+##########################                   #########################
+##########################  MATH : ROUNDING  #########################
+##########################                   #########################
+######################################################################
+
+
+#%IU% (x,step)
+#%MDESC% Rounds "x" to a smaller or equal value that is a multiple of "step".
+def round_down(x, step) '{
+    if (step == 0) {
+        return (x)
+    }
+
+    return (floor(x/step)*step)
+}'
+
+
+#%IU% (x,step)
+#%MDESC%
+#    Rounds "x" to a bigger or equal value that is a multiple of "step".
+# round_up(X,1) == ceil(X)
+def round_up(x, step) '{
+    if (step == 0){
+        return (x)
+    }
+
+    return (ceil(x/step)*step)
+}'
+
+
+#%IU% (x[,step])
+#%MDESC% Rounds x up or down to the next multiple of step.
+# If you omit step it rounds to integer.
+def round_next (x, step) '{
+    if (whatis("step") & 0x08000000){
+        step = 1
+    }
+
+    if (step == 0) {
+        return (x)
+    }
+
+    return (floor(x/step+0.5)*step)
+}'
+
+#%IU% (<x>)
+#%MDESC%
+#    Returns the largest integer number smaller or equal than x.
+def floor(x) '{
+
+    if (int(x) == x) {
+        return (x)
+    }
+    else if (x>=0) {
+        return (int(x))
+    }
+    else{
+        return (int(x - 1))
+    }
+}'
+
+
+#%IU% (<x>)
+#%MDESC%
+#    Returns the smallesr integer number bigger or equal than x.
+def ceil(x) '{
+    if (int(x) == x) {
+        return (x)
+    }
+    else if (x>=0) {
+        return (int(x + 1))
+    }
+    else{
+        return (int(x))
+    }
+}'
+
+
+#%UI% (<x>)
+#%MDESC%
+#    Rounds up or down to next integer value.
+def round_int(x) '{
+    return (floor(x + 0.5))
+}'
+
+
+#%IU%(x)
+#%MDESC%
+# Return a well rounded integer as opposed to int() which always
+# round down
+#
+def round_nearest(x) '{
+    if (x>=0) {
+        return int(x+0.5)
+    }
+    else{
+        return int(x-0.5)
+    }
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs a set of tests on "round_nearest()" function.
+def round_nearest_tests '{
+    print "round_nearest(0)=",    round_nearest(0)
+    print "round_nearest(1)=",    round_nearest(1)
+    print "round_nearest(0.1)=",  round_nearest(0.1)
+    print "round_nearest(0.5)=",  round_nearest(0.5)
+    print "round_nearest(1.1)=",  round_nearest(1.1)
+    print "round_nearest(-1)=",   round_nearest(-1)
+    print "round_nearest(-0.1)=", round_nearest(-0.1)
+    print "round_nearest(-1.1)=", round_nearest(-1.1)
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs a set of tests on "ceil()" function.
+def ceil_tests() '{
+    print "ceil(0)=",    ceil(0)
+    print "ceil(1)=",    ceil(1)
+    print "ceil(0.1)=",  ceil(0.1)
+    print "ceil(1.1)=",  ceil(1.1)
+    print "ceil(-1)=",   ceil(-1)
+    print "ceil(-0.1)=", ceil(-0.1)
+    print "ceil(-1.1)=", ceil(-1.1)
+}'
+
+
+#%UU% (<step>)
+#%MDESC%
+#    Performs a set of tests on "round_down" function.
+def round_down_tests(_step)'{
+    print "round_down(0)=",    round_down(0,    _step)
+    print "round_down(1)=",    round_down(1,    _step)
+    print "round_down(0.1)=",  round_down(0.1,  _step)
+    print "round_down(0.5)=",  round_down(0.5,  _step)
+    print "round_down(0.9)=",  round_down(0.9,  _step)
+    print "round_down(1.1)=",  round_down(1.1,  _step)
+    print "round_down(-1)=",   round_down(-1,   _step)
+    print "round_down(-0.1)=", round_down(-0.1, _step)
+    print "round_down(-1.1)=", round_down(-1.1, _step)
+}'
+
+
+#%UU% (step)
+#%MDESC%
+#    Performs a set of tests on "round_up" function.
+def round_up_tests(_step)'{
+    print "round_up(0)=",    round_up(0,    _step)
+    print "round_up(1)=",    round_up(1,    _step)
+    print "round_up(0.1)=",  round_up(0.1,  _step)
+    print "round_up(1.1)=",  round_up(1.1,  _step)
+    print "round_up(-1)=",   round_up(-1,   _step)
+    print "round_up(-0.1)=", round_up(-0.1, _step)
+    print "round_up(-1.1)=", round_up(-1.1, _step)
+}'
+
+
+#%UU% (step)
+#%MDESC%
+#    Performs a set of tests on "round_next" function.
+def round_next_tests(_step)'{
+    print "round_next(0)=",    round_next(0,    _step)
+    print "round_next(1)=",    round_next(1,    _step)
+    print "round_next(0.1)=",  round_next(0.1,  _step)
+    print "round_next(1.1)=",  round_next(1.1,  _step)
+    print "round_next(-1)=",   round_next(-1,   _step)
+    print "round_next(-0.1)=", round_next(-0.1, _step)
+    print "round_next(-1.1)=", round_next(-1.1, _step)
+}'
+
+
+#%UU% (step)
+#%MDESC%
+#    Performs a set of tests on "floor" function.
+def floor_tests()'{
+    print "floor(0)=",    floor(0)
+    print "floor(1)=",    floor(1)
+    print "floor(0.1)=",  floor(0.1)
+    print "floor(1.1)=",  floor(1.1)
+    print "floor(-1)=",   floor(-1)
+    print "floor(-0.1)=", floor(-0.1)
+    print "floor(-1.1)=", floor(-1.1)
+}'
+
+
+#%UU% (step)
+#%MDESC%
+#    Performs a set of tests on "int" function.
+def int_tests()'{
+    print "int(0)=",    int(0)
+    print "int(1)=",    int(1)
+    print "int(0.1)=",  int(0.1)
+    print "int(1.1)=",  int(1.1)
+    print "int(-1)=",   int(-1)
+    print "int(-0.1)=", int(-0.1)
+    print "int(-1.1)=", int(-1.1)
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Performs a set of tests on "round_int" function.
+def round_int_tests()'{
+    print "round_int(0)=",    round_int(0)
+    print "round_int(1)=",    round_int(1)
+    print "round_int(0.1)=",  round_int(0.1)
+    print "round_int(1.1)=",  round_int(1.1)
+    print "round_int(-1)=",   round_int(-1)
+    print "round_int(-0.1)=", round_int(-0.1)
+    print "round_int(-1.1)=", round_int(-1.1)
+}'
+
+
+#%UU% (<step>)
+#%MDESC%
+#    Launchs all rounding tests.
+def rounding_test(step) '{
+
+    print "-------------------------------------------------------------"
+    print "-----------------------rounding tests------------------------"
+    print "-------------------------------------------------------------"
+    print "-- round_down  round_up  round_next  ceil floor  round_int --"
+    print "-------------------------------------------------------------"
+    print ""
+    ceil_tests()
+    print ""
+    _step = 1
+    round_down_tests(step)
+    print ""
+    _step = 1
+    round_up_tests(step)
+    print ""
+    _step = 1
+    round_next_tests(step)
+    print ""
+    floor_tests()
+    print ""
+     int_tests()
+    print ""
+    round_int_tests()
+    print ""
+    round_nearest_tests
+}'
+
+
+#%UU% (<step>)
+#%MDESC%
+#    Launchs all rounding tests.
+def rounding_test_tab(step) '{
+
+    print "----------------------------------------------------------------------------  "
+    print "-----------------------rounding tests---------------------------------------  "
+    print "----------------------------------------------------------------------------  "
+    print " VAL | r_down | r_up   | r_next |  ceil  | floor  |  r_int | r_near | int    "
+    print "----------------------------------------------------------------------------  "
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           -1, round_down(-1, step), round_up(-1, step), round_next(-1, step),   \
+           ceil(-1), floor(-1), round_int(-1), round_nearest(-1)  , int(-1)   )
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           0, round_down(0, step), round_up(0, step), round_next(0, step),   \
+           ceil(0), floor(0), round_int(0), round_nearest(0), int(0)    )
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           1, round_down(1, step), round_up(1, step), round_next(1, step),   \
+           ceil(1), floor(1), round_int(1), round_nearest(1), int(1)    )
+    print "----------------------------------------------------------------------------  "
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           0.1, round_down(0.1, step), round_up(0.1, step), round_next(0.1, step),   \
+           ceil(0.1), floor(0.1), round_int(0.1), round_nearest(0.1), int(0.1)   )
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           1.1, round_down(1.1, step), round_up(1.1, step), round_next(1.1, step),   \
+           ceil(1.1), floor(1.1), round_int(1.1), round_nearest(1.1) , int(1.1)    )
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           0.5, round_down(0.5, step), round_up(0.5, step), round_next(0.5, step),   \
+           ceil(0.5), floor(0.5), round_int(0.5), round_nearest(0.5)  , int(0.5)   )
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           -0.5, round_down(-0.5, step), round_up(-0.5, step), round_next(-0.5, step),   \
+           ceil(-0.5), floor(-0.5), round_int(-0.5), round_nearest(-0.5)  , int(-0.5)   )
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           -0.1, round_down(-0.1, step), round_up(-0.1, step), round_next(-0.1, step),   \
+           ceil(-0.1), floor(-0.1), round_int(-0.1), round_nearest(-0.1)  , int(-0.1)   )
+
+
+    printf("%5s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|%8s|\n", \
+           -1.1, round_down(-1.1, step), round_up(-1.1, step), round_next(-1.1, step),   \
+           ceil(-1.1), floor(-1.1), round_int(-1.1), round_nearest(-1.1)  , int(-1.1)   )
+
+}'
+
+
+
+######################################################################
+##############################          ##############################
+##############################  MATRIX  ##############################
+##############################          ##############################
+######################################################################
+
+
+#%UU%
+#%MDESC%
+#
+def matrix_test '{
+
+    local rows cols
+
+    rows = 3
+    cols = 4
+
+    global  long array mat1[rows][cols]
+    array_op("row_wise", mat1, 1)
+
+    global  long array mat2[cols][rows]
+    array_op("row_wise", mat2, 1)
+
+    global  long array mat_res[rows][rows]
+    array_op("row_wise", mat_res, 1)
+
+    global  long array mat_res_add[rows][cols]
+    array_op("row_wise", mat_res_add, 1)
+
+
+    #  matrix_test.dat :
+    #  1   2  3  4
+    #  5   6  7  8
+    #  9  10 11 12
+    #
+    #  matrix_test2.dat:
+    #  1  2  3
+    #  4  5  6
+    #  7  8  9
+    # 10 11 12
+
+
+    matrix_load("matrix_test.dat",  mat1)
+    matrix_load("matrix_test2.dat", mat2)
+
+    matrix_print(mat1)
+    # {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}}
+    print ""
+    print "       x   "
+    print ""
+    matrix_print(mat2)
+    # {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}}
+    print ""
+    print "       =   "
+    print ""
+
+    matrix_mul(mat1, mat2, mat_res)
+    matrix_print(mat_res)
+    #   70  80  90
+    #  158 184 210
+    #  246 288 330
+
+    print ""
+    print ""
+    print ""
+    print ""
+    print ""
+    matrix_print(mat1)
+    print ""
+    print "       +   "
+    print ""
+    matrix_print(mat1)
+    print ""
+    print "       =   "
+    print ""
+    matrix_add(mat1, mat1, mat_res_add)
+    matrix_print(mat_res_add)
+    print ""
+
+    #    2   4   6   8
+    #   10  12  14  16
+    #   18  20  22  24
+
+}'
+
+
+#%UU% (<file_name>, <out_arr>)
+#%MDESC%
+#
+def matrix_load(file_name, out_arr) '{
+    local _ans _col_n _row_n
+
+    # local _nb_col _nb_row
+
+    if(file_info(file_name, "-e")){
+        # print "opening " file_name
+        array_read(file_name, out_arr)
+    }
+    else{
+        printf("matrix_load--ERROR--unable to open file \"%s\"\n", file_name)
+    }
+}'
+
+
+#%UU% <parma>
+#%MDESC%
+#
+def matrix_print(matrix) '{
+    local _rows _cols ii jj
+
+    _rows = array_op("rows", matrix)
+    _cols = array_op("cols", matrix)
+
+    for (ii=0 ; ii<_rows ; ii++){
+        for(jj=0 ; jj<_cols ; jj++){
+            printf ("%10s", matrix[ii][jj])
+        }
+        print ""
+    }
+}'
+
+
+#%UU% <parma>
+#%MDESC%
+#
+def matrix_print_vector(matrix) '{
+    local _rows _cols ii jj
+
+    _rows = array_op("rows", matrix)
+    _cols = array_op("cols", matrix)
+
+    if(_rows == 1){
+    }
+    else if(_cols == 1){
+
+        printf("[")
+        for (ii=0 ; ii<_rows ; ii++){
+            printf ("%g ", matrix[ii])
+        }
+        print "]"
+
+    }
+    else{
+        print "Pas un vectuer ?"
+    }
+
+}'
+
+
+#%UU% (<m1>, <m2>, <m3>)
+#%MDESC%
+#
+def matrix_mul(mat1, mat2, mat_res) '{
+    local _rows1 _cols1
+    local _rows2 _cols2
+    local _rows_res _cols_res
+    local ii jj kk _res
+
+    _rows1 = array_op("rows", mat1)
+    _cols1 = array_op("cols", mat1)
+
+    _rows2 = array_op("rows", mat2)
+    _cols2 = array_op("cols", mat2)
+
+    _rows_res = array_op("rows", mat_res)
+    _cols_res = array_op("cols", mat_res)
+
+    if (_cols1 != _rows2){
+        print "error in dimensions of input matrix"
+        return(-1)
+    }
+
+    if ((_cols2 != _cols_res) || (_rows1 != _rows_res) ){
+        print "erorr in dimensions of result matrix"
+        return(-1)
+    }
+
+    for (ii=0 ; ii<_rows_res ; ii++){
+        for (jj=0 ; jj<_cols_res ; jj++){
+
+            _res = 0
+
+            for (kk=0 ; kk<_cols1; kk++){
+                # print "kk=" kk " ii=" ii
+                # print " m1 " mat1[ii][kk] "*  m2 " mat2[kk][jj]
+                _res = _res + mat1[ii][kk] * mat2[kk][jj]
+            }
+
+            mat_res[ii][jj] = _res
+        }
+    }
+}'
+
+
+#%UU% (<m1>, <m2>, <m3>)
+#%MDESC%
+#
+def matrix_add(mat1, mat2, mat_res)'{
+    local _rows1 _cols1
+    local _rows2 _cols2
+    local _rows_res _cols_res
+    local ii jj kk _res
+
+    _rows1 = array_op("rows", mat1)
+    _cols1 = array_op("cols", mat1)
+
+    _rows2 = array_op("rows", mat2)
+    _cols2 = array_op("cols", mat2)
+
+    _rows_res = array_op("rows", mat_res)
+    _cols_res = array_op("cols", mat_res)
+
+    if (_cols1 != _cols2){
+        print "error in cols dimensions of input matrix"
+        return(-1)
+    }
+
+    if (_rows1 != _rows2){
+        print "error in rows dimensions of input matrix"
+        return(-1)
+    }
+
+    if ((_cols1 != _cols_res) || (_rows1 != _rows_res) ){
+        print "erorr in dimensions of result matrix"
+        return(-1)
+    }
+
+    for (ii=0 ; ii<_rows_res ; ii++){
+        for (jj=0 ; jj<_cols_res ; jj++){
+            mat_res[ii][jj] = mat1[ii][jj] + mat2[ii][jj]
+        }
+    }
+}'
+
+
+#%UU% (<m1>, <m2>, <m3>)
+#%MDESC%
+#
+def matrix_sub(mat1, mat2, mat_res)'{
+    local _rows1 _cols1
+    local _rows2 _cols2
+    local _rows_res _cols_res
+    local ii jj kk _res
+
+    _rows1 = array_op("rows", mat1)
+    _cols1 = array_op("cols", mat1)
+
+    _rows2 = array_op("rows", mat2)
+    _cols2 = array_op("cols", mat2)
+
+    _rows_res = array_op("rows", mat_res)
+    _cols_res = array_op("cols", mat_res)
+
+    if (_cols1 != _cols2){
+        print "error in cols dimensions of input matrix"
+        return(-1)
+    }
+
+    if (_rows1 != _rows2){
+        print "error in rows dimensions of input matrix"
+        return(-1)
+    }
+
+    if ((_cols1 != _cols_res) || (_rows1 != _rows_res) ){
+        print "erorr in dimensions of result matrix"
+        return(-1)
+    }
+
+    for (ii=0 ; ii<_rows_res ; ii++){
+        for (jj=0 ; jj<_cols_res ; jj++){
+            mat_res[ii][jj] = mat1[ii][jj] - mat2[ii][jj]
+        }
+    }
+}'
+
+
+
+######################################################################
+##############################           #############################
+##############################  STRINGS  #############################
+##############################           #############################
+######################################################################
+
+# * removeEndingChar
+# ** removeEndingCharTests
+# * removeStartingSpaces
+# * removeChars
+
+# * string_get_last_char()
+# * string_get_last_N_char()
+
+
+#%UU% (<str>, <char_to_remove>)
+#%MDESC%
+#    Removes to <str> an eventual ending <char_to_remove>.
+#    NOTE : Removes only 1 character.
+
+# OULALA pourquoi c si complique ???
+
+def removeEndingChar(str, char_to_remove) '{
+
+    local _arr_tmp_str[]
+    local _ret_str  _nb_elems  ii
+
+    if( index(str, char_to_remove) == length(str)){
+        # print "---Ok only 1 <char_to_remove> at end of <str>."
+        split(str, _arr_tmp_str, char_to_remove)
+        return (_arr_tmp_str[0])
+    }
+    else if(index(str, char_to_remove) == 0){
+        # print "---No <char_to_remove> at end of <str>."
+        return (str)
+    }
+    else if(index(str, char_to_remove) < length(str)){
+
+        if (substr(str, length(str)) == "\n"){
+            # print "---The last char of <str> is not the only <char_to_remove>"
+            _nb_elems = split(str, _arr_tmp_str, char_to_remove)
+            _ret_str  = _arr_tmp_str[0]
+
+            for (ii=1; ii<_nb_elems-1; ii++){
+                # print "---" ii ":" _arr_tmp_str[ii]
+                _ret_str = _ret_str  "\n" _arr_tmp_str[ii]
+            }
+
+            return (_ret_str)
+        }
+        else{
+            # print "---No <char_to_remove> at end of <str>."
+            return (str)
+        }
+    }
+
+    return ("tutu")
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Performs a set of tests on "removeEndingChar()" function.
+def removeEndingCharTests() '{
+
+    local _s1 _s2 _s3 _s4 _s5 _s6
+    _s1 = "salut !"
+    _s2 = "hello world\n"
+    _s3 = "\n"
+    _s4 = "hello \n world\n"
+    _s5 = "hello \n world\n\n"
+
+    if (removeEndingChar(_s1, "\n") == "salut !")
+        print "s1 ok"
+    else
+        print "s1 error"
+
+
+    if (removeEndingChar(_s2, "\n") == "hello world")
+        print "s2 ok"
+    else
+        print "s2 error"
+
+    if (removeEndingChar(_s3, "\n") == "")
+        print "s3 ok"
+    else
+        print "s3 error"
+
+    if (removeEndingChar(_s4, "\n") == "hello \n world")
+        print "s4 ok"
+    else
+        print "s4 error"
+
+    if (removeEndingChar(_s5, "\n") == "hello \n world\n")
+        print "s5 ok"
+    else
+        print "s5 error"
+
+# Please feel free to add tests.
+
+#     if (removeEndingChar(_s, "\n") == "")
+#         print "s ok"
+#     else
+#         print "s error"
+}'
+
+
+#%UU% (<string>)
+#%MDESC%
+#
+def removeStartingSpaces(chaine) '{
+    local cuttedString
+
+    cuttedString = chaine
+
+    while (index(cuttedString, " ") == 1 ){
+        cuttedString = substr(cuttedString, 2)
+    }
+
+    return (cuttedString)
+}'
+
+
+#%UU%
+#%MDESC%
+#    Tests removeChars.
+def removeChars_test '{
+    local _str_test
+
+    _str_test = "abcdefgfedcba"
+    print "str1="_str_test
+    print "Whithout \"e\" : " removeChars(_str_test,"e")
+    print "Whithout \"a\" : " removeChars(_str_test,"a")
+
+    print " "
+    _str_test = "abcdefgfed\ncba"
+    print "str2="_str_test
+    print "Whithout \"\\n\" : " removeChars(_str_test,"\n")
+}'
+
+
+#%UU% (<str>, <char_to_remove>)
+#%MDESC%
+#    Removes to <str> all occurences of <char_to_remove>.
+def removeChars(str, char_to_remove) '{
+
+    local _source_str
+    local _target_str
+    local _char
+
+
+    local _ret_str  _nb_elems  ii
+
+    _source_str = str
+    _target_str = ""
+
+    for (ii=0 ; ii< length(_source_str) ; ii++){
+        _char = substr(_source_str, ii+1, 1)
+        if (_char==char_to_remove){
+            # found one ...
+        }
+        else{
+            _target_str = _target_str _char
+        }
+    }
+
+    return (_target_str)
+
+#     if( index(str, char_to_remove) == length(str)){
+#         # print "---Ok only 1 <char_to_remove> at end of <str>."
+#         split(str, _arr_tmp_str, char_to_remove)
+#         return (_arr_tmp_str[0])
+#     }
+#     else if(index(str, char_to_remove) < length(str)){
+#
+#         if (substr(str, length(str)) == "\n"){
+#             # print "---The last char of <str> is not the only <char_to_remove>"
+#             _nb_elems = split(str, _arr_tmp_str, char_to_remove)
+#             _ret_str  = _arr_tmp_str[0]
+#
+#             for (ii=1; ii<_nb_elems-1; ii++){
+#                 # print "---" ii ":" _arr_tmp_str[ii]
+#                 _ret_str = _ret_str  "\n" _arr_tmp_str[ii]
+#             }
+#
+#             return (_ret_str)
+#         }
+#         else{
+#             # print "---No <char_to_remove> at end of <str>."
+#             return (str)
+#         }
+#     }
+#
+#     return ("tutu")
+}'
+
+
+
+#%UU% (<str>)
+#%MDESC%
+#    Returns the last char of string <str>.
+def string_get_last_char(str) '{
+    return substr( st, length(st))
+}'
+
+#%UU% (<str>, <nb_char>)
+#%MDESC%
+#    Returns last N char(s) of string <str>.
+def string_get_last_N_char(str, nb_char) '{
+    return substr( str, length(str) - nb_char + 1)
+}'
+
+
+#%UU% (<str>, <nb_char>)
+#%MDESC%
+#    Returns string <str> without <nb_char> last characters.
+def string_remove_last_N_chars(str, nb_char) '{
+    return substr(str, 1, length(str)-nb_char)
+}'
+
+
+
+# Checks characters of <user_string> to be valid ascii characters.
+# Removes "unusual" characters.
+# from FTOMO / fasttomo.mac
+def removeStrangeChars(user_string) '{
+    local str_len idx chr final_str ascii_number
+
+    final_str= ""
+    str_len= length(user_string)
+
+    for (idx= 0; idx<str_len; idx++) {
+        chr= substr(user_string, idx + 1, 1)
+        ascii_number= asc(chr)
+
+        if (((ascii_number >= asc("0")) && (ascii_number <= asc("9"))) || \
+            ((ascii_number >= asc("A")) && (ascii_number <= asc("Z"))) || \
+            ((ascii_number >= asc("a")) && (ascii_number <= asc("z"))) || \
+            (ascii_number==asc("_")) || (ascii_number==asc("-")) || (ascii_number==asc("."))) {
+            # if chr is in "0-9 A-Z a-z  _ - ." then use it in final_str.
+            final_str = sprintf("%s%c", final_str, asc(chr))
+        }
+    }
+
+    return (final_str)
+}'
+
+
+#%UU% <input_string>
+#%MDESC%
+# Returns 1 if <input_string> contains only "standard" characters.
+# from RH
+def str_is_std(input_string) '{
+    local _len, _i, _c
+    local _std
+
+    _std = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-."
+    # _stdNo = " #()[]{}|$\'\`*?;!&<>\\@:/"
+
+    _len = length(input_string)
+
+    if(_len == 0) return 0
+
+    for(_i=1; _i<=_len; _i++) {
+        _c = substr(input_string, _i,1)
+        if(index(_std,_c) == 0) return 0
+    }
+
+    return 1
+}'
+
+#%UU% <input_string>
+#%MDESC%
+# Returns 1 if <input_string> contains only "standard" characters
+#       and \ and / for paths and windows paths.
+# from RH
+def str_is_std_path_win(input_string) '{
+    local _len, _i, _c
+    local _std
+
+    _std = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:-./\\"
+    # _stdNo = " #()[]{}|$\'\`*?;!&<>@"
+
+    _len = length(input_string)
+
+    if(_len == 0) return 0
+
+    for(_i=1; _i<=_len; _i++) {
+        _c = substr(input_string, _i,1)
+        if(index(_std,_c) == 0) return 0
+    }
+
+    return 1
+}'
+
+# for compatibility
+def str_isstd(input_string) '{
+    return str_is_std(input_string)
+}'
+
+
+
+
+##################  IS ELEMENT IN STRING  #################
+
+
+def is_string(the_string) '{
+    return(1)
+}'
+
+#%UU% (<element>, <the_string>, [<separator>])
+#%MDESC%
+#    Returns 1 if <element> is present in string <the_string>.
+# Returns 0 otherwise.
+# Default separator is space character.
+def is_element_in_string(element, the_string, separator) '{
+    local ii
+    local IEIS_TTT[]
+    IEIS_TTT[0]=0
+
+    if(is_string(the_string)){
+        if (separator == ""){
+            separator = " "
+        }
+
+        split(the_string, IEIS_TTT, separator)
+
+        # printf ("string=\"%s\" \n", the_string)
+        # printf ("separator = \"%s\" \n", separator)
+        # print IEIS_TTT
+
+        return ( is_element_in_ass_arr(element, IEIS_TTT) )
+    }
+    else{
+        print "is_element_in_string Error"
+        print "   usage:  is_element_in_assarr(<element>, <associative_array>)"
+        return (-1)
+    }
+
+    return (0)
+}'
+
+
+
+def is_element_in_string_test(element, the_string, result) '{
+
+    printf("is_element_in_string(%s, \t\"%s\"):%s \t ", element, the_string, is_element_in_string(element, the_string)? "yes" : "no")
+
+    if (is_element_in_string(element, the_string) == result){
+        print "ok"
+    }
+    else{
+        cprint_red("ERROR")
+        print ""
+    }
+
+}'
+
+def is_element_in_string_test_suite() '{
+
+    local test_string
+
+    test_string = "sy sampy sa sam sypz sz s"
+
+    print "Test suite for \"is_element_in_string()\" function"
+    is_element_in_string_test("sy",    test_string,  1)
+    is_element_in_string_test("sampy", test_string,  1)
+    is_element_in_string_test("sypz",  test_string,  1)
+
+    is_element_in_string_test("sa", test_string,  1)
+    is_element_in_string_test("x",   test_string,  0)
+    is_element_in_string_test("sx",  test_string,  0)
+    is_element_in_string_test("sam", test_string,  1)
+    is_element_in_string_test("sypz sz", test_string,  0)  # lets say only 1 element...
+    print ""
+
+}'
+
+
+######################################################################
+###############################        ###############################
+###############################  CASE  ###############################
+###############################        ###############################
+######################################################################
+
+# A=65    a=97    diff = 32
+
+def string_toupper(str) '{
+    local _str_len idx _upper_str
+    local _char  _case_diff  _upper_char
+
+    local _asc_diff
+
+    _upper_str = ""
+    _str_len = length(str)
+    _case_diff = asc("a") - asc("A")
+
+    for (idx = 0; idx < _str_len; idx++) {
+        _char = substr(str, idx+1, 1)
+
+        if ( char_is_lower_case(_char) ) {
+            _asc_diff = _case_diff
+        }
+        else{
+            _asc_diff = 0
+        }
+        _upper_str = sprintf("%s%c", _upper_str , asc(_char) - _asc_diff)
+    }
+    return (_upper_str)
+}'
+
+def string_tolower(str) '{
+    local _str_len idx _lower_str
+    local _char  _case_diff  _lower_char
+    local _asc_diff
+
+    _lower_str = ""
+    _str_len = length(str)
+    _case_diff = asc("a") - asc("A")
+
+    for (idx = 0; idx < _str_len; idx++) {
+        _char = substr(str, idx+1, 1)
+
+        if ( char_is_upper_case(_char) ) {
+            _asc_diff = _case_diff
+        }
+        else{
+            _asc_diff = 0
+        }
+        _lower_str = sprintf("%s%c", _lower_str , asc(_char) + _asc_diff)
+    }
+    return (_lower_str)
+}'
+
+
+def char_is_lower_case(letter) '{
+    local _ascii_code
+    _ascii_code = asc(letter)
+
+    if((_ascii_code>= 97) && (_ascii_code  <= 122)){
+        return(1)
+    }
+    else{
+        return(0)
+    }
+}'
+
+def char_is_upper_case(letter) '{
+    local _ascii_code
+    _ascii_code = asc(letter)
+
+    if((_ascii_code>= 65) && (_ascii_code  <= 90)){
+        return(1)
+    }
+    else{
+        return(0)
+    }
+}'
+
+
+def tolower(str) '{
+    #  ACHTUNG !@$#@$@#$##@  tolower is defined in isg.mac...
+    return string_tolower(str)
+}'
+
+
+def toupper(str) '{
+    return string_toupper(str)
+}'
+
+
+def tolower_test() '{
+
+    local tabStr[]
+    local ii   _in _out _eout  _res_str
+
+    print "     tolower_test    "
+
+    tabStr[0]["in"]  = "ABCDZ"
+    tabStr[0]["out"] = "abcdz"
+
+    tabStr[1]["in"]  = "1"
+    tabStr[1]["out"] = "1"
+
+    tabStr[2]["in"]  = "aB cD"
+    tabStr[2]["out"] = "ab cd"
+
+    tabStr[3]["in"]  = "a2BcD"
+    tabStr[3]["out"] = "a2bcd"
+
+    tabStr[4]["in"]  = "aaa"
+    tabStr[4]["out"] = "aaa"
+
+    tabStr[5]["in"]  = "@#$^&*()_+"
+    tabStr[5]["out"] = "@#$^&*()_+"
+
+    for (ii=0 ; ii<6 ; ii++){
+        _in   = sprintf("\"%s\"", tabStr[ii]["in"])
+        _eout = sprintf("\"%s\"", tabStr[ii]["out"])
+        _out  = sprintf("\"%s\"", tolower(tabStr[ii]["in"]))
+
+        _res_str = sprintf ("in=%20s expected out=%20s out=%20s  ", _in , _eout, _out )
+
+        if (_eout == _out){
+            printf(_res_str)
+            cprint_green("OK")
+            print ""
+        }
+        else{
+            cprint_red(_res_str)
+        }
+    }
+    print ""
+}'
+
+
+def toupper_test() '{
+
+    local tabStr[]
+    local ii   _in _out _eout  _res_str
+
+    print "     toupper_test    "
+
+    tabStr[0]["in"]  = "abcdz"
+    tabStr[0]["out"] = "ABCDZ"
+
+    tabStr[1]["in"]  = "1"
+    tabStr[1]["out"] = "1"
+
+    tabStr[2]["in"]  = "aB cD"
+    tabStr[2]["out"] = "AB CD"
+
+    tabStr[3]["in"]  = "a2BcD"
+    tabStr[3]["out"] = "A2BCD"
+
+    tabStr[4]["in"]  = "aaa"
+    tabStr[4]["out"] = "AAA"
+
+    tabStr[5]["in"]  = "@#$^&*()_+"
+    tabStr[5]["out"] = "@#$^&*()_+"
+
+    for (ii=0 ; ii<6 ; ii++){
+        _in   = sprintf("\"%s\"", tabStr[ii]["in"])
+        _eout = sprintf("\"%s\"", tabStr[ii]["out"])
+        _out  = sprintf("\"%s\"", string_toupper(tabStr[ii]["in"]))
+
+        _res_str = sprintf ("in=%20s expected out=%20s out=%20s  ", _in , _eout, _out )
+
+        if (_eout == _out){
+            printf(_res_str)
+            cprint_green("OK")
+            print ""
+        }
+        else{
+            cprint_red(_res_str)
+        }
+    }
+    print ""
+}'
+
+def case_test '{
+    toupper_test()
+    tolower_test()
+}'
+
+
+######################################################################
+#########                                                    #########
+#########  Compilation of macros found on ID09 (F.Schote ?)  #########
+#########                                                    #########
+######################################################################
+
+
+def split_fname(f) '{
+    local last_u i ret[]
+    ret["dir"] = dirname(f)
+    f=basename(f)
+    ret["filename"]=f
+    i=rindex(f,".")
+    last_u = rindex(f,"_");
+    ret["prefix"] = substr(f,0,last_u)
+    ret["num"]    = substr(f,last_u+1,i-last_u-1)
+    ret["suffix"] = substr(f,i+1,length(f)-i+1)
+    return (ret)
+}'
+
+
+#%MDESC% returns the inverted string
+def string_reverse(s) '{
+    local i n sr
+    sr=""
+    n=length(s)
+    for (i=n; i>0;i--) {
+        sr = sr substr(s,i,1)
+    }
+
+    return (sr)
+}'
+
+
+#%UU% (<>, <>)
+#%MDESC%
+#    ???
+def rindex(s,what) '{
+    local i nwhat
+    nwhat=length(what)
+    n=length(s)
+    for (i=n; i>0;i--){
+        if ( what == substr(s,i,nwhat) ) { return i }
+    }
+    return (i)
+}'
+
+
+
+##############################################################################################
+# VERSION SCHOTE
+
+def dirname(s) '{
+    local i
+    i=rindex (s,"/"); # find last /
+    return (substr(s,0,i))
+}'
+
+#%MDESC% returns the basename (i.e. basename("this_is_a_long_path/with/multiple/dirs")=dirs)
+#if second argument is given, the suffix will be cut off. Unlike the bash version, it`ll cut
+#off any suffix, regardless of the content of the variable suffix.
+#The macro should work as before, when there is no suffix.
+def basename(f, suffix) '{
+    local i, fname
+    i = rindex (f,"/"); # find last /
+    fname = substr(f,i+1,length(f))
+    if (suffix) {
+        i = rindex (fname,".");
+        fname = substr(fname,1,i-1)
+    }
+    return fname
+}'
+
+
+
+##############################################################################################
+# VERSION AHOMS
+
+#%IU% (fname)
+#%MDESC%
+#  Gets the directory path of a file name. Still incomplete ...
+#
+def dirname(fname) '{
+    local alldirs nr dname
+
+    nr = split(fname, alldirs, "/") - 1
+    if (alldirs[nr] == "")
+        nr--
+    if (nr == 0)
+        return (".")
+
+    dname = alldirs[--nr]
+    while (--nr >= 0)
+        dname = sprintf("%s/%s", alldirs[nr], dname)
+
+    return (dname)
+}'
+
+
+#%UU% (<filename>)
+#%MDESC%
+#    Returns the extention of a file
+# file_extention("toto.titi.42.txt") :  returns "txt"
+def file_extention(filename) '{
+    local ffields[]
+    nr = split(filename, ffields, ".")
+    # print nr
+    # print ffields
+
+    return(ffields[nr-1])
+}'
+
+
+#%UU% (<filename>)
+#%MDESC%
+#    Returns the filename whitout extention.
+# file_without_extention("toto.titi.42.txt") :  returns "toto.titi.42"
+def file_without_extention(filename) '{
+    local ffields[] nr _name
+
+    nr = split(filename, ffields, ".")
+    # print nr
+    # print ffields
+    delete ffields[nr-1]
+
+    _name = ffields[0]
+    for (ii=1 ; ii< nr-1 ; ii++){
+        # print ffields[ii]
+        _name = sprintf("%s.%s", _name , ffields[ii])
+    }
+
+    return(_name)
+
+}'
+
+
+#%UU% (<dir>)
+#%MDESC%
+#    Returns an associative array of files AND DIRECTORIES found in directory <dir>
+def list_dir(dir) '{
+    local ls_res
+    local arr_res[]
+    arr_res[0]=0
+
+    unix(sprintf("ls %s", dir), ls_res)
+    _nb_fields = split(ls_res, arr_res,"\n")
+
+    delete arr_res[_nb_fields-1]
+
+    return arr_res
+}'
+
+
+#%UU% (<dir>)
+#%MDESC%
+#    Returns an associative array of files AND NOT DIRECTORIES found in directory <dir>.
+# If specified, returns only fiels with <extention> extention.
+#
+def list_dir_files(dir, extension) '{
+    local ls_res
+    local arr_res[]
+    arr_res[0]=0
+
+    unix(sprintf("ls %s", dir), ls_res)
+    _nb_fields = split(ls_res, arr_res,"\n")
+
+    delete arr_res[_nb_fields-1]
+
+    for (ff in arr_res){
+        if (file_info(sprintf("%s/%s", dir, arr_res[ff]), "isreg")){
+            # print "ok file " , arr_res[ff]
+            if(extension){
+                if (file_extention(arr_res[ff]) == extension){
+                    # printf(" \"%s\" ok : good %s extension \n", arr_res[ff], extension)
+                }
+                else{
+                    delete arr_res[ff]
+                }
+            }
+        }
+        else{
+            # print "DIR? delete?" , sprintf("%s/%s", dir, arr_res[ff])
+            delete arr_res[ff]
+        }
+    }
+
+    return arr_res
+}'
+
+# from FTOMO / fasttomo.mac
+def create_directory_tree(tree) '{
+    if (index(tree, "/") == 0) {
+        printf("create_directory_tree error : \"%s\" is not a valid directory name", tree)
+        return(0)
+    }
+
+    if (file_info(tree, "isdir") == 0) {
+        unix(sprintf("mkdir -p %s", tree))
+        if (file_info(tree, "isdir") == 0) {
+            printf("create_directory_tree : Failed to create directory %s", tree)
+            return (0)
+        } else {
+            printf("create_directory_tree : Created directory %s", tree)
+            unix(sprintf("chmod g+w %s", tree))
+        }
+    }
+    return (1)
+}'
+
+######################################################################
+###############################        ###############################
+###############################  MISC  ###############################
+###############################        ###############################
+######################################################################
+
+
+#%IU% <a> <b>
+#%MDESC% interchange the value of the variables "a" and "b"
+def swap '{
+    local temp1
+
+    temp1 = $1
+    $1    = $2
+    $2    = temp1
+}'
+
+
+#%UU% (<tname> <verbose>)
+#%MDESC%
+#     Return the path of the file <tname>
+def get_tool_path(tname, verbose) '{
+    local _tmp_str _ret
+    local _path
+    local _cmd
+
+    _cmd = sprintf ("which %s", tname)
+
+    if (unix(_cmd, _tmp_str)){
+        if (verbose){
+            printf ("\"%s\" not found\n", tname)
+        }
+        return (-1)
+    }
+    else{
+        _path = removeEndingChar( _tmp_str, "\n")
+
+        if (verbose){
+            printf("\"%s\" found: %s\n", tname, _path)
+        }
+
+        return (_path)
+    }
+}'
+
+
+
+######################################################################
+###########################                 ##########################
+###########################  TYPE CHECKING  ##########################
+###########################                 ##########################
+######################################################################
+
+
+#%UU% (<value_to_test>)
+#%MDESC%
+#    Returns 1 if <value_to_test> is an integer (-2 -1 0 1 2).
+#    Returns 0 otherwise.
+def is_int(value, blabla) '{
+    local y
+
+    if (blabla != 0){
+        return(0)
+    }
+
+    y = sprintf("%.0f", value)
+    return(value == y)
+}'
+
+
+#%UU% (<value_to_test>)
+#%MDESC%
+#    Returns 1 if <value_to_test> is a positive integer (0 1 2).
+#    Returns 0 otherwise.
+def is_int_pos(value) '{
+
+    if (is_int(value) && value >=0){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%UU% (<value_to_test>)
+#%MDESC%
+#    Returns 1 if <value_to_test> is a natural number (1 2 3).
+#    Returns 0 otherwise.
+def is_int_pos_not_zero(value) '{
+
+    if (is_int(value) && value >0){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%UU% (<value_to_test>)
+#%MDESC%
+#    Returns 1 if <value_to_test> is a number (-0.12 0 1 3.14 3.2232e3)
+#    0 otherwise.
+def is_number(value) '{
+    local y
+
+    y = sprintf("%g", value)
+
+    if (value == y){
+        return (1)
+    }
+    else{
+        y= value + 0
+        return(y == value)
+    }
+
+}'
+
+
+#%UU% (<value_to_test>, <low_lim>, <high_lim>)
+#%MDESC%
+#    Returns 1 if <value_to_test> is a number (-0.12 0 1 3.14 3.2232e3)
+# and in range [<low_lim>, <high_lim>] (limits included).
+# Returns 0 otherwise.
+def is_number_in_range(value, low_lim, high_lim) '{
+    local y  _is_number
+    y = sprintf("%g", value)
+
+    if (value == y){
+        _is_number = 1
+    }
+    else{
+        y= value + 0
+        if (y == value){
+            _is_number = 1
+        }
+    }
+
+    if (_is_number == 1){
+        if(  (value >= low_lim) && (value <= high_lim)){
+            return(1)
+        }
+        else {
+            return(0)
+        }
+    }
+    else {
+        return(0)
+    }
+
+}'
+
+
+
+
+def is_ass_arr(aaasssaaarrr) '{
+    return (((whatis("aaasssaaarrr") >> 16) & 0x100) == 0x100)
+}'
+
+
+def is_ass_arr_test_suite()'{
+    local TTTT[]
+    global UUUU[]
+
+    unglobal RRRR
+    print "Test suite for \"is_ass_arr()\" function"
+
+    TTTT[0] = TTTT[0]
+    UUUU[0] = UUUU[0]
+
+    is_ass_arr_test(RRRR, "RRRR", 0)
+    is_ass_arr_test(TTTT, "TTTT", 1)
+    is_ass_arr_test(UUUU, "UUUU", 1)
+    print ""
+}'
+
+def is_ass_arr_test(ass_arr, array_name, result) '{
+
+    printf("is_ass_arr(%s):%s \t ", array_name, is_ass_arr(ass_arr)? "yes" : "no")
+    if (is_ass_arr(ass_arr) == result){
+        print "ok"
+    }
+    else{
+        cprint_red("ERROR")
+        print ""
+    }
+
+    return ""
+
+}'
+
+
+def is_type_test_suite() '{
+
+    is_int_test_suite()
+    is_number_test_suite()
+    is_ass_arr_test_suite()
+}'
+
+
+
+
+
+
+
+######################################################################
+########################                       #######################
+########################  TYPE CHECKING TESTS  #######################
+########################                       #######################
+######################################################################
+
+
+#%UU% (<value>)
+#%MDESC%
+#    Prints a int test for <value>.
+def is_int_test(value) '{
+    printf("is_int(%s)  \t ", value )
+    cprint_yes_no(is_int_pos(value))
+    print ""
+}'
+
+
+#%UU% (<value>)
+#%MDESC%
+#    Prints a int pos test for <value>.
+def is_int_pos_test(value) '{
+    printf("is_int_pos(%s)  \t ", value )
+    cprint_yes_no(is_int(value))
+    print ""
+}'
+
+
+#%UU% (<value>)
+#%MDESC%
+#    Prints a integer positive and not zero test for <value>.
+def is_int_pos_not_zero_test(value) '{
+    printf("is_int_pos_not_zero(%s)  \t ", value )
+    cprint_yes_no(is_int_pos_not_zero(value))
+    print ""
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Performs a set of tests for is_int() function.
+def is_int_test_suite() '{
+
+    print "Test suite for \"is_int()\" function "
+    is_int_test(1)
+    is_int_test(3.1)
+    is_int_test(0)
+    is_int_test(-1.4)
+    is_int_test("33")
+    is_int_test("33rewrwe")
+    is_int_test(3e3)
+    is_int_test(2e9)    # these 2 tests are to keep because
+    is_int_test(3e9)    # there was a bug occuring after 2^31
+    is_int_test("f\033[43")
+    print ""
+
+    print "Test suite for \"is_int_pos()\" function "
+    is_int_pos_test(0)
+    is_int_pos_test(1.2)
+    is_int_pos_test(2)
+    print ""
+
+    print "Test suite for \"is_int_pos_not_zero()\" function "
+    is_int_pos_not_zero_test(0)
+    is_int_pos_not_zero_test(0.4)
+    is_int_pos_not_zero_test(1.4)
+    is_int_pos_not_zero_test(4)
+    print ""
+
+}'
+
+
+#%UU% (<value>)
+#%MDESC%
+#    Prints a number test for <value>.
+def is_number_test(value, result) '{
+
+    printf("is_number(%s):%s \t ", value, is_number(value)? "yes" : "no")
+    if (is_number(value) == result){
+        print "ok"
+    }
+    else{
+        cprint_red("ERROR")
+        print ""
+    }
+
+    return ""
+}'
+
+
+
+#%UU% ()
+#%MDESC%
+#    Launches a set of tests on is_number() function.
+def is_number_test_suite() '{
+
+    print "Test suite for \"is_number()\" function "
+    is_number_test(1, 1)
+    is_number_test(3.1, 1)
+    is_number_test(.233, 1)
+    is_number_test(-1.4, 1)
+    is_number_test("33", 1)
+    is_number_test("33rewrwe", 0)
+    is_number_test(3.255444456e3, 1)
+    is_number_test(2.3e9, 1)
+    is_number_test(3.4e9, 1)
+    print ""
+
+}'
+
+
+######################################################################
+##############################          ##############################
+##############################  INPUTS  ##############################
+##############################          ##############################
+######################################################################
+
+# in getval, entering spaces equals to ask for default value.
+
+
+# getval([ s,] x [, u]) - Prompts the user with the string s, if
+# present, then waits for a user response.  If the user enters a
+# value, that value is returned.  The value of x is returned if the
+# user simply enters return.  If the prompt string s is present, the
+# string is printed followed by the current value of x and the string
+# u, if present, in parenthesis, a question mark and a space.  The
+# function works with both number and string values.  The optional
+# third argument is intended to be used for a unit string (available
+# as of spec release 5.08.02-6).
+
+####
+# newpi = getval ("enter a value for PI", 3.14)
+# enter a value for PI (3.14)?
+
+####
+# 1300.CYRIL> p getval (3)
+#
+# 3
+
+####
+# 1301.CYRIL> p getval (3)
+# 4
+# 4
+
+
+#%UU% (<message>, <default>, <unit>)
+#%MDESC%
+#    Prompts for an integer until a valid one is entered.
+# example:
+# getval_int("Enter number of samples", 4, " pieces")
+def getval_int(message, default, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while (! is_int(_entry)){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <val_min>, <val_max>, <unit>)
+#%MDESC%
+#    Prompts for an integer in a range until a valid one is entered.
+# example:
+# getval_int("Enter number of samples", 4, 1, 10, " pieces")
+def getval_int_interval(message, default, val_min, val_max, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while ((!is_int(_entry))   || (!is_number_in_range(_entry, val_min, val_max) )  ){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <unit>)
+#%MDESC%
+#    Prompts for a positive integer until a valid one is entered.
+def getval_int_pos(message, default, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while (! is_int_pos(_entry)){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <unit>)
+#%MDESC%
+#    Prompts for a positive non zero integer until a valid one is entered.
+def getval_int_pos_not_zero(message, default, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while (! is_int_pos_not_zero(_entry)){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <unit>)
+#%MDESC%
+#    Prompts for a number until a valid one is entered.
+def getval_number(message, default, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while (! is_number(_entry)){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <val_min>, <val_max>, <unit>)
+#%MDESC%
+#    Prompts for a number between <val_min> and <val_max> (values
+# included). Repeat until a valid one is entered.
+# ex : getval_number_interval("Enter a temperature (-273..500)", 20.5, -273, 500)
+def getval_number_interval(message, default, val_min, val_max, unit) '{
+    local _entry
+
+    _entry = getval(message, default, unit)
+
+    while ((! is_number(_entry)) || (_entry < val_min) || (_entry > val_max)){
+        _entry = getval(message, default, unit)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default>, <len_min>, <len_max>)
+#%MDESC%
+#    Prompts for a string of lenght between <len_min> and <len_max>
+#    until a valid one is entered.
+# example:
+# getval_string_len("Beamline type ? (ID/BM)", "ID", 2, 2)
+def getval_string_len(message, default, len_min, len_max) '{
+    local _entry _msg
+
+    _msg = sprintf("%s [%d..%d]", message, len_min, len_max)
+    _entry = getval(_msg, default)
+
+    while (  (length(_entry) < len_min) ||  (length(_entry) > len_max) ){
+        _entry = getval(_msg, default)
+    }
+
+    return (_entry)
+}'
+
+
+#%UU% (<message>, <default_counter_mne>)
+#%MDESC%
+#    Prompts for a COUNTER *mnemonic*.
+# example:
+# getval_counter("Detector counter ?", "apd")
+def getval_counter(message, default) '{
+    local _entry
+
+    _entry = getval( message, default)
+
+    if (cnt_num(_entry ) == -1 ){
+        if( yesno ("Warning : you enter an invalid counter mnemonic... are you sure ?", "no")){
+            return (_entry)
+        }
+        else{
+            return (-1)
+        }
+    }
+    else{
+        return(_entry)
+    }
+
+}'
+
+
+#%UU% (<message>, <default_motor_mne>)
+#%MDESC%
+#    Prompts for a MOTOR mnemonic.
+# example:
+# getval_motor("Motor mne ?", "etron")
+def getval_motor(message, default_mot_mne) '{
+    local _entry
+
+    _entry = getval( message, default_mot_mne)
+
+   if (motor_num(_entry ) == -1 ){
+        if( yesno ("Warning : you enter an invalid motor mnemonic... are you sure ?", "no")){
+            return (_entry)
+        }
+        else{
+            return (-1)
+        }
+    }
+    else{
+        return(_entry)
+    }
+}'
+
+
+#%UU% (<message>, <value>)
+#%MDESC%
+#    To replace "getval()" by a more secure (forbid strange characters) version.
+def getval_check(message, value) '{
+    local input_string
+    while(1) {
+        input_string = getval(message, value)
+
+        if(str_is_std(input_string)){
+            return input_string
+        }
+
+        printf("ERROR - invalid characters!!! try again\n")
+    }
+}'
+
+#%UU% (<message>, <value>)
+#%MDESC%
+#    To replace "getval()" by a more secure (forbid strange characters) version.
+def getval_check_path(message, value) '{
+    local input_string
+    while(1) {
+        input_string = getval(message, value)
+
+        if(str_is_std_path_win(input_string)){
+            return input_string
+        }
+
+        printf("ERROR - invalid characters!!! try again\n")
+    }
+}'
+
+
+######################################################################
+############################              ############################
+############################  LIST INPUT  ############################
+############################              ############################
+######################################################################
+
+#
+# ... should avoid to duplicate stlist.mac ...
+#
+# ACHTUNGGGGGGG  associative arrays are not ordered in memory or on disk.
+# You cannot rely on the ass arr order ....
+#
+
+#%UU% (<message>, <list>, <default>)
+#%MDESC%
+#    Prompts for a STRING from a given associative array until a valid
+# one is entered by user then RETURNS THE STRING.
+def getval_list(message, list, default) '{
+    local _entry
+    local _numbered_list[]  ii  jj
+
+    jj = 1
+
+    # To number the associative array.
+    for (ii in list){
+        _numbered_list[jj] = list[ii]
+        jj++
+    }
+
+    ass_arr_print_elements(_numbered_list, "- ")
+    _entry = getval( message, default)
+
+    while(!is_element_in_ass_arr(_entry, _numbered_list)) {
+        print "valid entries are :"
+
+        # prints in the good order.
+        ass_arr_print_elements(_numbered_list, "- ")
+
+        _entry = getval( message, default)
+    }
+
+    return (_entry)
+}'
+
+
+#%IU% ()
+#%MDESC%
+#    Performs a test for "getval_list()".
+def getval_list_test '{
+    local test_list[]
+    local _ans
+
+    test_list["0"] = "red"
+    test_list["3"] = "green"
+    test_list["4"] = "blue"
+    test_list["7"] = "yellow"
+
+    _ans = getval_list("Enter a color :", test_list, test_list[0])
+
+    printf("Color : %s", _ans)
+}'
+
+
+#%UU% (<message>, <list>, <default>)
+#%MDESC%
+#    Prompts for a valid KEY of a list and returns the KEY.
+def getkey_list_by_key(message, list, default_key) '{
+    local _entry
+    local ii jj
+    local _element
+
+    _entry = -1
+
+    while( !is_key_in_ass_arr(list, _entry) ) {
+        ass_arr_print_keys_and_values(list, ":")
+
+        _entry = getval(message, default_key)
+    }
+
+    return (_entry)
+}'
+
+
+def getkey_list_by_key_test '{
+
+    local test_list[]
+    local _ans
+
+    test_list[0] = "grodi"
+    test_list[1] = "lundi"
+    test_list[4] = "jeudi"
+    test_list[5] = "vendredi"
+    test_list[7] = "dimanche"
+
+    _key_ans = getkey_list_by_key("Choose a day number :", test_list, 1)
+
+    printf("key : %s", _key_ans)
+}'
+
+
+# Returns the VALUE selected by key in <list> list.
+# The set of keys is meaningless: list is re-ordered.
+def getval_list_by_key(message, list, default_key) '{
+    local _reversed_list
+    local _numbered_list[]  ii jj
+
+    jj=0
+
+    for (ii in list )  {
+        _numbered_list[jj] = list[ii]
+        jj++
+    }
+
+#     print _numbered_list
+
+    _key = getkey_list_by_key(message, _numbered_list, default_key)
+
+    return _numbered_list[_key]
+}'
+
+
+#%IU% ()
+#%MDESC%
+#    Performs a test for "getval_list_by_key()".
+def getval_list_by_key_test '{
+    local test_list[]
+    local _ans
+
+    # The set of keys is meaningless: list is re-ordered.
+    test_list["1"] = "lundi"
+    test_list["4"] = "jeudi"
+    test_list["5"] = "vendredi"
+    test_list["7"] = "dimanche"
+
+    _ans = getval_list_by_key("Choose a day number :", test_list, 1)
+
+    printf("Day : %s", _ans)
+}'
+
+
+#%IU% ()
+#%MDESC%
+#    Ask for a file (not the directories) from directory <dir_path>.
+# If specified, proposes only fiels with <extention> extention.
+def getval_file_in_dir(dir_path, extension) '{
+
+    local files[]
+    local _ans
+
+    if(extension)    {
+        printf ("search for \".%s\" files in %s \n", extension, dir_path)
+    }
+    else{
+        printf ("search for all files in %s \n", dir_path)
+    }
+
+    # Queries files (not dir)  in <dir_path>
+    files = list_dir_files(dir_path, extension)
+    # print files
+    _ans = getval_list_by_key("Choose a file", files, 0)
+    return _ans
+}'
+
+######################################################################
+########################                      ########################
+########################  ASSOCIATIVE ARRAYS  ########################
+########################                      ########################
+######################################################################
+
+# ... should avoid to duplicate stlist.mac ...
+
+# use *_ass_arr_* rather than *assarr*
+
+
+#%UU% (<ass_arr>)
+#%MDESC%
+#   Returns the number of elements in associative array <ass_arr>.
+def ass_arr_nb_key(ass_arr) '{
+    local ii jj
+    jj=0
+    for (ii in ass_arr) {
+        jj++
+    }
+    return(jj)
+}'
+
+
+#%UU% (<param>)
+#%MDESC%
+#    Flatterns an associative array (tilps)
+# ie: the reverse of split function.
+def ass_arr2string(ARR) '{
+    local ii str
+
+    ii=0
+    while (ARR[ii] != 0){
+        str = str " " ARR[ii]
+        ii++
+    }
+    return(str)
+}'
+
+
+def assarr2string(ARR) '{
+    return ass_arr2string(ARR)
+}'
+
+
+#%UU% (<element>, <ass_arr>)
+#%MDESC%
+#    Returns 1 if <element> is present in associative array <ass_arr>.
+# Returns 0 otherwise.
+def is_element_in_ass_arr(element, ass_arr) '{
+    local ii
+
+    if(is_ass_arr(ass_arr)){
+        for (ii in ass_arr) {
+            # print ii, element
+            if(ass_arr[ii] == element){
+                return (1)
+            }
+        }
+    }
+    else{
+        print "is_element_in_ass_arr Error"
+        print "   usage:  is_element_in_assarr(<element>, <associative_array>)"
+        return (-1)
+    }
+
+    return (0)
+}'
+
+
+def is_element_in_assarr(element, ass_arr) '{
+    return(is_element_in_ass_arr(element, ass_arr))
+}'
+
+
+def is_element_in_ass_arr_test(element, ass_arr, ass_arr_name, result) '{
+
+    printf("is_element_in_ass_arr(%s, %s):%s \t ", element, ass_arr_name,  is_element_in_ass_arr(element, ass_arr)? "yes" : "no")
+    if (is_element_in_ass_arr(element, ass_arr) == result){
+        print "ok"
+    }
+    else{
+        cprint_red("ERROR")
+        print ""
+    }
+
+
+}'
+
+
+# Returns 1 if key <key> is in associative array <ass_arr>
+def is_key_in_ass_arr(ass_arr, key) '{
+
+    for (ii in ass_arr){
+        if (key == ii){
+            return 1
+        }
+    }
+
+    return 0
+}'
+
+def is_key_in_ass_arr_test '{
+    local test_list[]
+    local _ans
+
+    test_list["0"] = "red"
+    test_list["3"] = "green"
+    test_list["4"] = "blue"
+    test_list["7"] = "yellow"
+
+    if (is_key_in_ass_arr(test_list, "3") != 1)  print "is_key_in_ass_arr_test ERROR : 3"
+    if (is_key_in_ass_arr(test_list, "2") != 0)  print "is_key_in_ass_arr_test ERROR : 2"
+}'
+
+
+def is_element_in_ass_arr_test_suite() '{
+    unglobal TTT
+    global  TTT[]
+
+    TTT[1] = "titi"
+    TTT[2] = "to"
+    TTT[3] = "tutu"
+
+    print "Test suite for \"is_element_in_ass_arr()\" function"
+    is_element_in_ass_arr_test("ti",   TTT, "TTT", 0)
+    is_element_in_ass_arr_test("to",   TTT, "TTT", 1)
+    is_element_in_ass_arr_test("titi", TTT, "TTT", 1)
+    print ""
+
+}'
+
+
+#%UU% (<ass_arr>, <element>)
+#%MDESC%
+#   Returns the first found key of associative array <ass_arr>
+# corresponding to element <element>.
+# if nothing found, returns -1   ... bof ..
+#
+def ass_arr_get_key(ass_arr, element) '{
+
+    for (ii in ass_arr) {
+        # print ii, element
+        if(ass_arr[ii] == element){
+            return (ii)
+        }
+    }
+
+    return -1
+}'
+
+
+#%UU% (<ass_array>, <bullet>)
+#%MDESC%
+#
+def ass_arr_print_elements(ass_arr, bullet) '{
+    local ii
+    local _bullet
+
+    if(bullet){
+        _bullet = bullet
+    }
+    else{
+        _bullet = "*"
+    }
+
+    for (ii in ass_arr){
+        printf("%s%s\n", _bullet, ass_arr[ii])
+    }
+}'
+
+
+
+def ass_arr_print_keys_and_values(list, separator) '{
+
+
+    for (ii in list) {
+        printf("%s %s %s\n", ii , separator, list [ii])
+    }
+
+}'
+
+
+#%UU% (<ass_array>)
+#%MDESC%
+#    Prints elements of an associative array <ass_array> of size
+# NB_ELEM. Elements are prefixed by numbers [1..NB_ELEM]
+# NB : prints in good order !
+def ass_arr_print_numbered_elements(ass_arr) '{
+    local ii jj kk
+    local _nb_keys
+
+    # print "------good order-------"
+    # print ass_arr
+
+    # This prints in reverse order !!!!
+    # print "------ bad order-------"
+    # for (ii in ass_arr){
+    #    printf("%d - %s  \n",ii, ass_arr[ii])
+    # }
+
+    # Counts keys.
+    _nb_keys = 0
+    for (ii in ass_arr){
+        # _reverse_arr[kk] = ass_arr[ii]
+        _nb_keys++
+    }
+
+    # Prints in good order.
+    for (ii = 0; ii<_nb_keys ; ii++){
+        printf("%d - %s\n", ii, ass_arr[ii])
+    }
+}'
+
+
+#%UU% (<ass_arr>)
+#%MDESC%
+#    Returns an assosiative array in reverse order...
+def ass_arr_reverse(ass_arr) '{
+    local TTT[]
+    local ii
+
+    for(ii in ass_arr) {
+        TTT[ii] = ass_arr[ii]
+    }
+
+    return TTT
+}'
+
+
+#%UU% (<ass_arr>)
+#%MDESC%
+#    Returns 1 if <ass_arr> assosiative array values are ordered.
+def ass_arr_is_ordered(ass_arr) '{
+    local TTT[]
+    local ii
+
+    TTT = ass_arr_reverse(ass_arr)
+
+    for(ii=0 ; ii<(ass_arr_nb_key(TTT)-1) ; ii++) {
+        if (TTT[ii] > TTT[ii+1])
+            return 0
+    }
+
+    return 1
+}'
+
+def ass_arr_is_ordered_test '{
+    local TTT[]
+    local YYY[]
+    local VVV[]
+
+    TTT[0]=-1 ; TTT[1]=9 ; TTT[2]=16 ; TTT[3]=30
+    YYY[0]=11 ; YYY[1]=12 ; YYY[2]=13 ; YYY[3]=9
+    VVV[0]=11 ; VVV[1]=12 ; VVV[2]=13 ; VVV[3]=13
+
+    print TTT
+    print ""
+    print YYY
+    print ""
+    print VVV
+
+    printf("ass_arr_is_ordered(TTT)=%d \n", ass_arr_is_ordered(TTT))
+    printf("ass_arr_is_ordered(YYY)=%d \n", ass_arr_is_ordered(YYY))
+    printf("ass_arr_is_ordered(VVV)=%d \n", ass_arr_is_ordered(VVV))
+
+}'
+
+
+#%IU% <array>
+#%MDESC% Useful for saving global variables across a "spec -f".
+# Writes the contents of all members of an array to an ASCII file,
+# so they can be reloaded later by the "restore_array" macro. The file is in
+# the directory ~specadm/local/userconf/SPEC and has the name of the array
+# with the user name appended.
+def save_array '
+{
+    local dir file command
+
+    if( ! (whatis("$1") & 0x01000000)) {
+        eprint "$1 is not an array"
+    }
+    else {
+
+        dir = BLISSADM"/local/userconf/"SPEC
+        if (file_info (dir,"isdir") != 1) {
+            unix (command="mkdir -p "dir)
+            unix (command="chmod 777 "dir)
+        }
+
+        file = dir"/$1_"USER
+        unix (command = "rm -f "file)
+
+        for (i in $1) fprintf (file,"%s=%s\n",i,$1[i])
+        close(file)
+        unix (command="chmod 666 " file)
+    }
+}'
+
+#%IU% <array>
+#%MDESC% Loads back saved values from an ASCII file from a previous "save_array"
+# call.
+
+def restore_array '
+{
+    local file line words tag value n
+
+    file = BLISSADM"/local/userconf/"SPEC"/$1_"USER
+    file1 = BLISSADM"/local/userconf/"SPEC"/$1"
+
+    if (file_info(file,"-e") == 1) {
+        global $1
+        # without this, the first assignment would fail if array was inexistant
+        $1["____"] = "__"
+        delete $1["____"]
+        getline (file,"open")
+
+        while ((line = getline(file)) != -1)
+        {
+            n = split (line,words,"="); tag = words[0]; value = words [1]
+            if (n < 1) continue
+            split (value,words,"\n"); value = words [0] # get rid of trailing new-line
+            if (!(tag in $1)) $1[tag] = value
+        }
+        getline (file,"close")
+    } else     if (file_info(file1,"-e") == 1) {
+        global $1
+        # without this, the first assignment would fail if array was inexistant
+        $1["____"] = "__"
+        delete $1["____"]
+        getline (file1,"open")
+
+        while ((line = getline(file1)) != -1)
+        {
+            n = split (line,words,"="); tag = words[0]; value = words [1]
+            if (n < 1) continue
+            split (value,words,"\n"); value = words [0] # get rid of trailing new-line
+            if (!(tag in $1)) $1[tag] = value
+        }
+        getline (file1,"close")
+    } else {
+        eprint "No array of the name", "\"$1\"", "found as a file!"
+        exit
+    }
+}'
+
+# TO TEST :
+
+
+######################################################################
+#############################            #############################
+#############################  BEAMLINE  #############################
+#############################            #############################
+######################################################################
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the name of the beamline where SPEC session is running.
+# info is taken from SPECBL which is set in
+# /users/blissadm/local/spec/spec.d/site.name
+def beamline_name() '{
+    return (SPECBL)
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns an associative array containing infos on beamline:
+# example :
+# on piano : tmp["number"] = 26
+#            tmp["type"] = "ID"
+# on chandra :
+#   tmp["number"] = 05
+#   tmp["type"] = "D"
+def beamline_info() '{
+    local _arr_bl[]
+    local _bl_name, t , n
+
+    _bl_name = beamline_name()
+
+    if (length(_bl_name) == 3){
+        if(_bl_name=="ID2"){
+            print "------- ID2 please change your beamline name -----------"
+            t = "ID"
+            n = 2
+        }
+        else{
+            sscanf(_bl_name, "%1s%d", t, n)
+        }
+    }
+    else if(length(_bl_name) == 4){
+        sscanf(_bl_name, "%2s%d", t, n)
+    }
+    else if(length(_bl_name) == 5) {
+        sscanf(_bl_name, "%2s%d", t, n)
+    }
+    else{
+        print "oupsla"
+        t = n = "oupsla"
+    }
+
+    _arr_bl["type"]   = t
+    _arr_bl["number"] = sprintf("%02d", n)
+
+    return (_arr_bl)
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns beamline number.
+def beamline_number() '{
+    local _bl_name
+
+    local _arr[]
+
+    _arr = beamline_info()
+    return  (_arr["number"])
+
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns beamline type (ID or D)
+def beamline_type() '{
+    local _bl_name
+    local _arr[]
+
+    _arr = beamline_info()
+    return  _arr["type"]
+}'
+
+
+
+#%UU%
+#%MDESC%
+#
+def beamline_info_test '{
+    local TTT[]
+
+    TTT = beamline_info()
+
+    printf ("Beamline type : \"%s\"   beamline number : \"%d\" \n", TTT["type"], TTT["number"])
+}'
+
+
+
+######################################################################
+#############################            #############################
+#############################  MESSAGES  #############################
+#############################            #############################
+######################################################################
+
+
+# %IU% (<message>)
+# %MDESC%
+#     Macro to display informational messages.
+def notice(message) '{
+    printf("\r%s", message)
+    tty_cntl ("ce") # clear to end of line
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs a test on notice.
+def notice_test '{
+    for (ii=0; ii<100 ; ii=ii+9){
+        notice(sprintf("%d %",ii)) ; sleep(0.1)
+    }
+    print ""
+}'
+
+
+#%UU% (<duration>)
+#%MDESC%
+#    Displays a <duration> seconds countdown.
+# example : countdown(5)
+def countdown(duration)'{
+    local ii
+
+    for (ii=duration; ii>0; ii--){
+        notice(sprintf("%d", ii))
+        sleep(1)
+    }
+}'
+
+
+#%UU% (<char>, <color>)
+#%MDESC%
+#    Prints a full line of character <char> with the color <color>.
+def print_line(char, color) '{
+    local ii
+
+    # To update COLS.
+    tty_cntl("resized?")
+
+    for (ii=0; ii<COLS; ii++)
+        cprint (sprintf("%s",char), color)
+
+}'
+
+#%UU% (<message>, <len>)
+#%MDESC%
+#    Prints <message> right aligned in a space of <len> characters.
+def print_right(msg, len) '{
+    local format, a
+
+    format = sprintf("%%%ds", len)
+    # print "format=" format
+
+    a=sprintf(format, msg)
+    printf(a)
+
+}'
+
+
+#%UU% (<message>, <len>, <char>)
+#%MDESC%
+#    Prints <message> left-aligned and fills the rest of the line until
+# <len> character with <char>.
+def print_left(msg, len, char) '{
+    local _format _len ii
+
+    _len = length(msg)
+
+    _fill = fabs(len - _len)
+    printf(msg)
+    for (ii=0 ; ii< _fill; ii++){
+        if(char){
+            printf(char)
+        }
+        else{
+            printf(" ")
+        }
+    }
+}'
+
+######################################################################
+#########################                    #########################
+#########################  GRAPHIC MESSAGES  #########################
+#########################                    #########################
+######################################################################
+
+# what about to use zenity?
+
+
+#%UU% <message>
+#%MDESC%
+#    Opens a QT window displaying <message>.
+def message_warning(message) '{
+
+    _ret = unix(sprintf("/users/blissadm/bin/aff_message.sh \"%s\"", message))
+
+}'
+
+#%UU% <message>
+#%MDESC%
+#    Opens a QT window displaying <message> and asking for a YES/NO answer.
+def message_question(message) '{
+
+    _ret = unix(sprintf("/users/blissadm/bin/aff_question.sh \"%s\"", message))
+
+    print _ret?"yes":"no"
+    return _ret
+}'
+
+
+
+######################################################################
+########################                       #######################
+########################  ON/OFF info message  #######################
+########################                       #######################
+######################################################################
+
+
+#%UU% (<msg>, <status>)
+#%MDESC%
+#    Prints a 2-parts ligne : 1st part is a message, 2nd part is a ON/OFF green/red
+# "a la" linux starting console.
+# Text is adjusted to fit ligne width minus 15 chars."
+def print_start_info(msg, status)'{
+    local ii
+
+    # To update COLS.
+    tty_cntl("resized?")
+
+    cprint(msg)
+
+    for (ii=0 ; ii<(COLS-length(msg)-15) ; ii++){
+        printf(" ")
+    }
+
+    cprint_on_off(status)
+    print ""
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs a test on "print_start_info()".
+def print_start_info_test '{
+    local ii
+
+    print ""
+    print "   $0 prints a 2-parts ligne : 1st part is a message, 2nd part is a ON/OFF green/red"
+    print "   a la linux starting console."
+    print "   Text is adjusted to fit ligne width-15 chars."
+    print ""
+
+    for (ii=0; ii<11; ii++){
+        print_start_info(sprintf("starting in %d seconds",10-ii), 10-ii?0:1 )
+        sleep(0.1)
+    }
+}'
+
+######################################################################
+##########################                  ##########################
+##########################  COLOR PRINTING  ##########################
+##########################                  ##########################
+######################################################################
+
+
+#%UU% (<str>)
+#%MDESC%
+#    Prints <str> in bold.
+def bprint(str) '{
+    printf("\033[1m%s\033[0m", str)
+}'
+def cprint_bold(str) '{
+    bprint(str)
+}'
+
+
+#%UU% (<str>)
+#%MDESC%
+#    Prints <str> in underlined bold.
+def buprint(str) '{
+    printf("\033[1m\033[4m%s\033[0m", str)
+}'
+def cprint_bold_underlined(str) '{
+    buprint(str)
+}'
+
+#%UU% (<str>)
+#%MDESC%
+#    Prints <str> underlined.
+def uprint(str) '{
+    printf("\033[4m%s\033[0m", str)
+}'
+def cprint_underlined(str) '{
+    uprint(str)
+}'
+
+
+#%UU%
+#%MDESC%
+#    Prints "Ab1" string in many colored and modified typo.
+def cprint_examples '{
+    local ii jj str
+
+    str = "Ab1 "
+
+    print "        color print"
+    print "usage : cprint(str, <p1>, <p2>, <p3>, <p4>)"
+    print ""
+    print "p1\\p2-> 0               1               2               3           "      \
+        "    4               5               6               7               8     "
+
+    for (ii=0 ; ii<9; ii++){
+        printf("%s--", ii)
+        for (jj=0 ; jj<9; jj++){
+            cprint(sprintf(str,ii), ii ,jj)
+            cprint(sprintf(str,ii), ii ,jj,1)
+            cprint(sprintf(str,ii), ii ,jj,0,1)
+            cprint(sprintf(str,ii), ii ,jj,1,1)
+        }
+        print "\n"
+    }
+
+    str = "color %3d : Salut le monde *^*"
+
+    bprint("p3 : bold : Salut le monde *^*\n")
+    uprint("p4 : underlined : Salut le monde *^*\n")
+    buprint("b+u : Salut le monde *^*\n")
+}'
+
+
+####  TERMINAL BACKGROUND COLOR WAR...
+# ok with : linux colors ; white on black;
+# ok with : black on light yellow ; black on random light; black on white
+# medium with : dark pastel ; green on black
+
+
+global CPRINT_PAR[]
+# CPRINT_PAR["dark_background"]
+# CPRINT_PAR["light_background"]
+
+
+#%UU%
+#%MDESC%
+#    Enables usge of colors with cprint* functions.
+def cprint_enable_colors '{
+    CPRINT_PAR["colors"] = 1
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Check if usage of colors with cprint* functions is enabled.
+# Returns 1 if yes, 0 otherwise.
+def cprint_colors_enabled() '{
+    return (CPRINT_PAR["colors"])
+}'
+
+
+#%UU%
+#%MDESC%
+#    Disables usge of colors with cprint* functions.
+def cprint_disable_colors '{
+    CPRINT_PAR["colors"] = 0
+}'
+
+
+#%UU%
+#%MDESC%
+#    If using a dark background, this might help to have more readable
+# colored texts.
+def cprint_set_dark_background '{
+    CPRINT_PAR["dark_background"]  = 1
+    CPRINT_PAR["light_background"] = 0
+}'
+
+
+#%UU%
+#%MDESC%
+#    If using a light background, this might help to have more readable
+# colored texts.
+def cprint_set_light_background '{
+    CPRINT_PAR["light_background"] = 1
+    CPRINT_PAR["dark_background"]  = 0
+}'
+
+
+#%IU% (<fgcolor>, <bgcolor>, <bold>, <underlined>)
+#%MDESC%
+#    Returns 1 if one of the conditions of poor contrast is matched.
+def _cprint_bad_contrast(fgcolor, bgcolor, bold, underlined) '{
+    local _c0 _c1 _c2 _c3 _c4 _c5 _c6 _c7 _c8 _c9
+
+    #### ALL BG
+    _c0 = (fgcolor == bgcolor)
+
+    _c5 = (fgcolor == 1) && (bgcolor == 5)
+
+    _c6 = (fgcolor == 2) && (bgcolor == 6)
+
+    #### DARK BG
+    _c1 = (fgcolor==4) && ((bgcolor==8) || (bgcolor==0))
+
+    _c2 = (fgcolor == 5) && (bgcolor == 1) && (CPRINT_PAR["dark_background"])
+
+    _c3 = (fgcolor == 6) && (bgcolor == 2) && (CPRINT_PAR["dark_background"])
+
+    _c4 = (fgcolor == 8) && (bgcolor == 7) && (CPRINT_PAR["dark_background"])
+
+    _c7 = (fgcolor == 4) && (bgcolor == 6) && (CPRINT_PAR["dark_background"])
+
+
+    if( _c0 || _c1 || _c2 || _c3 || _c4 || _c5 || _c6 || _c7){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%IU% (<fgcolor>, <bgcolor>, <bold>, <underlined>)
+#%MDESC%
+#    Returns 1 if one of the conditions of poor contrast is matched.
+def _cprint_bad_contrast2(fgcolor, bgcolor, bold, underlined) '{
+    local _c0 _c1 _c2 _c3 _c4
+
+
+    #### LIGHT BG
+    _c1 = (fgcolor == 3) && (bgcolor == 8) && (bold == 1) && (CPRINT_PAR["light_background"])
+
+    _c2 = (fgcolor == 7) && (bgcolor == 8) && (bold == 1) && (CPRINT_PAR["light_background"])
+
+    if( _c1 || _c2){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%IU% (<fgcolor>, <bgcolor>, <bold>, <underlined>)
+#%MDESC%
+#    Returns 1 if one of the conditions of poor contrast is matched.
+def _cprint_bad_contrast3(fgcolor, bgcolor, bold, underlined) '{
+    local _c0 _c1
+
+    #### black on black with LIGHT BG
+    _c1 = (fgcolor == 8) && (bgcolor == 0) && (CPRINT_PAR["light_background"])
+
+    if( _c1 ){
+        return (1)
+    }
+    else{
+        return (0)
+    }
+}'
+
+
+#%UU% (<str>, <fgcolor>, <bgcolor>, <bold>, <underlined>, <st>)
+#%MDESC%
+#    Prints <str> with color and attributes.
+#    <fgcolor>    : foreground color : 0..8   (0=black 8=current fg color)
+#    <bgcolor>    : background color : 0..8   (0=black 8=current bg color)
+#    <bold>       : +bold
+#    <underlined> : +underlined
+#    <st>         : +Strikethrough
+def cprint_get_coloration(str, fgcolor, bgcolor, bold, underlined, st) '{
+
+    local _fg_str _bg_str  _mod_str
+    local _colored_str
+    local _ends_with_NL
+    local _b_str _u_str _st_str
+    local _bad_contrast _bad_contrast2 _bad_contrast3
+
+    _bad_contrast  = _cprint_bad_contrast(fgcolor, bgcolor, bold, underlined)
+    _bad_contrast2 = _cprint_bad_contrast2(fgcolor, bgcolor, bold, underlined)
+    _bad_contrast3 = _cprint_bad_contrast3(fgcolor, bgcolor, bold, underlined)
+
+
+    # Bold
+    _b_str  = "\033[1m"
+
+    # Underlined
+    _u_str  = "\033[4m"
+
+    # Striked-trougth
+    _st_str = "\033[9m"
+
+    # Formating the color strings.
+    if (_bad_contrast3){
+        # replace (current fg color black) on black by white on black.
+        _fg_str = sprintf("\033[3%dm", 7)
+    }
+    else{
+        _fg_str = sprintf("\033[3%dm", fgcolor)
+    }
+
+    if(bgcolor >= 0){
+        _bg_str = sprintf("\033[4%dm", bgcolor)
+    }
+    else{
+        _bg_str = ""
+    }
+
+    if( CPRINT_PAR["colors"] == 0 ){
+        _fg_str = ""
+        _bg_str = ""
+    }
+
+
+    # Formating the modificator strings.
+    _mod_str = ""
+
+    if((bold || _bad_contrast) && (_bad_contrast2==0)) {
+        _mod_str = _mod_str _b_str
+    }
+
+    if(underlined) {
+        _mod_str = _mod_str _u_str
+    }
+
+    if(st) {
+        _mod_str = _mod_str _st_str
+    }
+
+    # Print depending on prsence of NL.
+    _ends_with_NL = (str != removeEndingChar(str, "\n")) ? 1 : 0
+
+    if (_ends_with_NL){
+        # print "Ends with NL"
+        _colored_str  = sprintf( "%s%s%s%s\033[0m\n", _mod_str, _fg_str, _bg_str, removeEndingChar(str, "\n"))
+    }
+    else{
+        _colored_str  = sprintf( "%s%s%s%s\033[0m", _mod_str, _fg_str, _bg_str, str)
+    }
+
+    return (_colored_str)
+
+}'
+
+
+def cprint(str, fgcolor, bgcolor, bold, underlined, st) '{
+    printf(cprint_get_coloration(str, fgcolor, bgcolor, bold, underlined, st), str)
+}'
+
+def ceprint(str, fgcolor, bgcolor, bold, underlined, st) '{
+    eprintf(cprint_get_coloration(str, fgcolor, bgcolor, bold, underlined, st), str)
+}'
+
+
+
+#%UU% (<etat>)
+#%MDESC%
+#    Prints "on" in green  "off" in red depending on <etat>
+def cprint_on_off(etat) '{
+
+    if (etat==1 || toupper(etat)=="ON"){
+        cprint("on", 2)
+    }
+    else if(etat==0 || toupper(etat)=="OFF"){
+        cprint("off", 1)
+    }
+    else{
+        cprint("unknown",3)
+    }
+}'
+
+#%UU% (<msg>, <etat>)
+#%MDESC%
+#    Prints <msg> depending on <etat> in green(1/ON) or in red (0/OFF)
+def cprint_msg_on_off(msg, etat) '{
+
+    if (etat==1 || toupper(etat)=="ON"){
+        cprint(msg, 2, 0, 1)
+    }
+    else if(etat==0 || toupper(etat)=="OFF"){
+        cprint(msg, 1, 0, 1)
+    }
+    else{
+        cprint(msg, 3, 0, 1)
+    }
+}'
+
+
+#%UU% (<etat>)
+#%MDESC%
+#    Prints "yes" in green  "no" in red depending on <etat>
+def cprint_yes_no(etat) '{
+
+    if (etat==1 || toupper(etat)=="YES"){
+        cprint("yes", 2)
+    }
+    else if(etat==0 || toupper(etat)=="NO"){
+        cprint("no", 1)
+    }
+    else{
+        cprint("unknown",3)
+    }
+}'
+
+
+#%UU% (<etat>, <str_ok>, <str_bad>)
+#%MDESC%
+#    Prints <str_ok> string in green  <str_bad> in red depending on <etat>
+def cprint_ok_bad(etat, str_ok, str_bad) '{
+
+    if (etat==1 || toupper(etat)=="YES"){
+        cprint(str_ok, 2)
+    }
+    else if(etat==0 || toupper(etat)=="NO"){
+        cprint(str_bad, 1)
+    }
+    else{
+        cprint("unknown",3)
+    }
+}'
+
+
+######################################################################
+###########################                ###########################
+###########################  COLOR PRINTS  ###########################
+###########################                ###########################
+######################################################################
+
+#%UU% (<msg>)
+#%MDESC%
+#    Prints <msg> in red.
+def cprint_red(msg) '{
+    cprint(msg, 1,0,1)
+}'
+
+def cprint_green(msg) '{
+    cprint(msg, 2,0,1)
+}'
+
+def cprint_yellow(msg) '{
+    cprint(msg, 3,0,1)
+}'
+
+def cprint_blue(msg) '{
+    cprint(msg, 4,0,1)
+}'
+
+def cprint_pink(msg) '{
+    cprint(msg, 5,0,1)
+}'
+
+def cprint_cyan(msg) '{
+    cprint(msg, 6,0,1)
+}'
+
+def cprint_test_colors '{
+    cprint_red("red\n")
+    cprint_green("green\n")
+    cprint_yellow("yellow\n")
+    cprint_blue("blue\n")
+    cprint_pink("pink\n")
+    cprint_cyan("cyan")
+    print""
+}'
+
+######################################################################
+##########################                  ##########################
+##########################  TEXT FORMATING  ##########################
+##########################                  ##########################
+######################################################################
+
+
+#%UU% (<val>)
+#%MDESC%
+#    Returns a decimal-point-centered string of the <val> number.
+def kbf_fformat(val) '{
+    local _val
+
+    _val = val
+    _str = sprintf("%.8f", _val)
+
+    _ival = int (_val)
+    _fval = _val - _ival
+    _sfval = sprintf("%f", _fval)
+
+    if (_fval == 0){
+        return (sprintf("%5d      ", _ival ))
+    }
+    else{
+        return (sprintf("%5d.%s ", _ival , substr(_sfval,3)))
+    }
+}'
+
+
+#%UU% (<msg>,<surrounding_char>,<surrounding_spaces>)
+#%MDESC%
+#    Prints <msg> message centered over the terminal window.
+def print_centered(msg, surrounding_char, surrounding_spaces) '{
+    local _space
+
+    tty_cntl("resized?")
+
+    _space = floor( (COLS - length(msg)) / 2 ) - surrounding_spaces
+
+    #  print "COLS=" COLS
+    # print "_space=" _space
+
+    for (ii=0 ; ii< _space ; ii++){
+        if (surrounding_char != ""){
+            printf("%s", surrounding_char)
+        }
+        else{
+            printf(" ")
+        }
+    }
+
+    for (ii=0 ; ii< surrounding_spaces; ii++){
+        printf(" ")
+    }
+
+    printf("%s", msg)
+
+    for (ii=0 ; ii< surrounding_spaces; ii++){
+        printf(" ")
+    }
+
+    for (ii=0 ; ii< _space ; ii++){
+        if (surrounding_char != ""){
+            printf("%s", surrounding_char)
+        }
+        else{
+            printf(" ")
+        }
+    }
+
+    print ""
+
+}'
+
+
+#%UU%
+#%MDESC%
+#     "print_centered" function.
+def print_centered_test '{
+    local ii
+
+    print_centered("centered text")
+    print_centered("with surrounding char", "+")
+    print_centered("and 5 spaces", "*", 5)
+
+    print ""
+    print ""
+
+    for (ii=0 ; ii < 10 ; ii++){
+        print_centered("toto", "=", ii)
+    }
+
+    for (ii=10 ; ii>0 ; ii--){
+        print_centered("toto", "=", ii)
+    }
+}'
+
+
+#%UU% (<msg1>, <msg2>, <left_size>)
+#%MDESC%
+#    Prints <msg1> message within <left_size> characters then <msg2>.
+def print_aligned(msg1, msg2, separator, left_size) '{
+    local _space
+
+    print_right(msg1, left_size)
+    printf("%s", separator)
+    printf("%s\n", msg2)
+}'
+
+#%UU%
+#%MDESC%
+#     test for "print_aligned" function.
+def print_aligned_test '{
+    local _lsize _separator
+
+    _lsize     = 42
+    _separator = " : "
+
+    print_aligned("Lundi",    "Raviolis", _separator, _lsize)
+    print_aligned("Mardi",    "Ciel mon", _separator, _lsize)
+    print_aligned("Mercredi", "c permis", _separator, _lsize)
+    print_aligned("Jeudi",    "Semaine des 4", _separator, _lsize)
+    print_aligned("Vendredi", "13", _separator, _lsize)
+    print_aligned("Samedi",   "fievre de la nuit", _separator, _lsize)
+    print_aligned("Dimanche", "dodo", _separator, _lsize)
+
+}'
+
+
+#%UU% (<msg>, <offset>)
+#%MDESC%
+#    Prints <msg> as a boxed text.
+# <offset> adds spaces before the box.
+# if <offset> == -1  box is centered.
+def print_boxed(msg, offset) '{
+    local _ml
+    local _offset
+    local _nb_lines
+    global _s_msg[]
+    local ii jj kk
+    local _parity_tweak
+
+    # 1255.CYRIL> print_boxed("boxed text", 42)
+    #                                           /============\
+    #                                           | boxed text |
+    #                                           \============/
+
+
+    _nb_lines = split(msg, _s_msg, "\n")
+    # print _nb_lines " lines"
+
+    if (_nb_lines == 1){
+        _ml = length(msg)
+    }
+    else{
+        _ml = 0
+        for (ii=0 ; ii<  _nb_lines; ii++){
+            _ml = max2(_ml, length(_s_msg[ii]))
+        }
+    }
+
+
+    # print "_ml ="_ml
+
+    if (offset == -1){
+        tty_cntl("resized?")
+        _offset = floor(( COLS-_ml)/2)
+    }
+    else{
+        _offset = offset
+    }
+
+
+    # 1st ligne
+    for (ii=0; ii< _offset; ii++){
+        printf (" ")
+    }
+    printf("/")
+    for (ii=0; ii< _ml+2; ii++){
+        printf ("=")
+    }
+    printf("\\\n")
+    # message
+
+
+    for (ii=0; ii < _nb_lines ; ii++){
+        _parity_tweak=0
+
+        for (jj=0; jj< _offset; jj++){
+            printf (" ")
+        }
+        printf("| ")
+
+        for (kk=0; kk< (floor(_ml-length(_s_msg[ii]))/2) ; kk++){
+            printf(" ")
+        }
+
+        printf("%s", _s_msg[ii])
+
+        # _parity_tweak = mod(length(_s_msg[ii]), 2)? 0 : 1
+
+        #print "parity="_parity_tweak
+
+        if (mod(_ml, 2)==1){
+            if(  mod(length(_s_msg[ii]),2)==0) {
+                _parity_tweak = 0
+            }
+            else{
+                _parity_tweak = 1
+            }
+        }
+        else{
+            if(  mod(length(_s_msg[ii]),2)==0) {
+                _parity_tweak = 1
+            }
+            else{
+                _parity_tweak = 0
+            }
+        }
+
+
+        # print "parity="_parity_tweak
+
+        for (kk=0; kk< _parity_tweak+(floor(_ml-length(_s_msg[ii]))/2) ; kk++){
+            printf(" ")
+        }
+
+        printf("|\n")
+    }
+
+    # last ligne
+    for (ii=0; ii< _offset; ii++){
+        printf (" ")
+    }
+    printf ("\\")
+    for (ii=0; ii< _ml+2; ii++){
+        printf ("=")
+    }
+    printf ("/\n")
+
+}'
+
+
+#%UU%
+#%MDESC%
+#    Performs a set of tests for "print_boxed" function.
+def print_boxed_test '{
+    print_boxed("a")
+    print_boxed("salut +42", 42)
+    print_boxed("a\nbb\nccc\ndddfd\neeeedse")
+    print_boxed("a\nbb\nccc\ndddfd\neeeedse", -1)
+}'
+
+
+
+######################################################################
+############################               ###########################
+############################  DATE / TIME  ###########################
+############################               ###########################
+######################################################################
+
+# ?? origin ??
+#%IU% (value)
+#%MDESC% convert time given in seconds in more readable format
+# such as ps, ns, ms, s, min, hours and days.
+# Rounds at 3 dignificant digits ?
+def time_string(t_str) '{
+    local text
+    if (!is_number(t_str)) return ("?")
+    if (t_str == "off") return ("off")
+    if (t_str == 0) return ("0")
+    if (fabs (t_str) < 1E-9)  return (sprintf ("%.3gps", t_str*1e12))
+    if (fabs (t_str) < 1E-6)  return (sprintf ("%.3gns", t_str*1e9))
+    if (fabs (t_str) < 1E-3)  return (sprintf ("%.3gus", t_str*1e6))
+    if (fabs (t_str) < 1)     return (sprintf ("%.3gms", t_str*1e3))
+    if (fabs (t_str) <= 60)   return (sprintf ("%.3gs", t_str))
+    if (fabs (t_str) < 10*60) return (text = int(t_str/60)"min,"t_str%60"s")
+    if (fabs (t_str) < 60*60) return (text = int(t_str/60)"min")
+    if (fabs (t_str) < 24*60*60) return (text = int(t_str/3600)"h,"int(t_str%3600/60)"min")
+    return (text = int(t_str/(24*3600))"d "int(t_str%(24*3600)/3600)"h")
+}'
+
+
+# ?? origin ??
+
+#%IU% (<text>)
+#%MDESC%
+#   Converts sub seconds units into seconds
+# ex : p seconds("3ps")  -> 3e-12
+def seconds(text) '{
+    local i
+    if (i=index(text,"ps")) return (substr(text,1,i-1) * 1E-12)
+    if (i=index(text,"ns")) return (substr(text,1,i-1) * 1E-9)
+    if (i=index(text,"us")) return (substr(text,1,i-1) * 1E-6)
+    if (i=index(text,"ms")) return (substr(text,1,i-1) * 1E-3)
+    if (i=index(text,"s"))  return (substr(text,1,i-1) * 1)
+    if (is_number(text)) return (text*1)
+    if (text == "off") return ("off")
+    return (0)
+}'
+
+
+
+
+# > p date()
+# Fri Apr 15 10:04:52 2011
+
+#%IU% [parma]
+#%MDESC%
+#
+#    From fasttomo.mac
+def date_init() '{
+    global DATE_PAR[]
+
+    local _d_arr
+    local datem
+
+    split(date(), _d_arr)
+    # _d_arr["0"] = "Fri"
+    # _d_arr["1"] = "Apr"
+    # _d_arr["2"] = "15"
+    # _d_arr["3"] = "10:05:44"
+    # _d_arr["4"] = "2011"
+
+    datem["Jan"]=1; datem["Feb"]=2; datem["Mar"]=3;
+    datem["Apr"]=4; datem["May"]=5; datem["Jun"]=6;
+    datem["Jul"]=7; datem["Aug"]=8; datem["Sep"]=9;
+    datem["Oct"]=10; datem["Nov"]=11; datem["Dec"]=12;
+
+
+    DATE_PAR["day_number"]   = _d_arr["2"]
+    DATE_PAR["day_name"]     = _d_arr["0"]
+    DATE_PAR["month_number"] = datem[_d_arr["1"]]
+    DATE_PAR["month_name"]   = _d_arr["1"]
+    DATE_PAR["year"]         = _d_arr["4"]
+
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the current day number in the month. (1..31)
+def get_day_number() '{
+    date_init()
+    return (DATE_PAR["day_number"])
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the shortened name of the current day (Mon Tue ...)
+def get_day_name() '{
+    date_init()
+    return (DATE_PAR["day_name"])
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the number of the curretn month (1..12)
+def get_month_number() '{
+    date_init()
+    return (DATE_PAR["month_number"])
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the shortened name of the current month (Jan..Dec)
+def get_month_name() '{
+    date_init()
+    return (DATE_PAR["month_name"])
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns the current year number.
+def get_year() '{
+    date_init()
+    return (DATE_PAR["year"])
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns a string of the current date (usable to timestamp a file
+# for example) with second accuracy.
+def date_stamping_second() '{
+    return date("%Y_%b_%d_%kh%Mm%Ss")
+
+    # 71.CYRIL> p date_stamping_second()
+    # 2013_Jan_31_10h37m47s
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns a string of the current time (usable to timestamp a debug
+# log for example) with milisecond accuracy.
+# substract <offset> from current time.
+def date_stamping_milisecond(offset) '{
+    local _time  _mili_seconds  _seconds  _micro_seconds
+
+    _time = time() - offset
+    # print "time = " , _time
+
+    _seconds = int(_time)
+    _mili_seconds = int((_time - _seconds) * 1000)
+
+    # _micro_seconds = int((_time - int(_time)) * 1000000)
+    # print " micro seconds = " ,  _micro_seconds
+    # print " mili seconds = " ,  _mili_seconds
+
+    return sprintf("%d:%03d", _seconds, _mili_seconds)
+
+    # 71.CYRIL> p
+    #
+}'
+
+
+#%UU% ()
+#%MDESC%
+#    Returns a string of the current date (usable to timestamp a file
+# for example) with minute accuracy.
+def date_stamping_minute() '{
+    return date("%Y_%b_%e_%kh%Mm")
+
+    # 70.CYRIL> p date_stamping_minute()
+    # 2013_Jan_31_10h37m
+
+
+}'
+
+
+#%UU% ()
+#%MDESC%
+#   Performs test on date&time functions.
+def date_test() '{
+    print "get_day_number()   : " get_day_number()
+    print "get_day_name()     : " get_day_name()
+    print "get_month_number() : " get_month_number()
+    print "get_month_name()   : " get_month_name()
+    print "get_year()         : " get_year()
+    print
+
+    print "time_string(4324) :", time_string(4324)
+    print "date_stamping_second()", date_stamping_second()
+    print "date_stamping_minute()", date_stamping_minute()
+}'
+
+
+
+######################################################################
+#########################                    #########################
+#########################  BIT MANIPULATION  #########################
+#########################                    #########################
+######################################################################
+
+#%IU% (<x> [<n>])
+#%MDESC%
+#     Returns <x> as binary number string consisting of 0 and 1.
+# If <n> is given, the return value is filled with leading zeros up to <n> digits.
+# Works for 32 bits numbers.
+def binary(x, n) '{
+    local ii bb
+
+    bb = ""
+
+    for (ii = 31 ;  ii >= 0;  ii--) {
+        if (x & 1<<ii){
+            bb = bb"1"
+        }
+        else if (bb || ii < n) {
+            bb = bb"0"
+        }
+    }
+
+    return bb
+}'
+
+
+# Found in gawk manual :
+#
+# function bits2str(bits,        data, mask)
+#      {
+#          if (bits == 0)
+#              return "0"
+#
+#          mask = 1
+#          for (; bits != 0; bits = rshift(bits, 1))
+#              data = (and(bits, mask) ? "1" : "0") data
+#
+#          while ((length(data) % 8) != 0)
+#              data = "0" data
+#
+#          return data
+#      }
+#
+#
+
+# to be refurbished....
+
+#%IU% (value, firstbit, lastbit)
+#%MDESC% Returns the value of a bit sequence (high positions starts left)
+#% lowest bit is number 0
+def __n354_return_bits(value,first_bit,last_bit) '{
+  local p,nbit
+  nbit = (last_bit-first_bit)+1
+  return ((value >>first_bit)&( (1<<nbit)-1))
+}'
+
+
+#%IU% (bit)
+#%MDESC% Returns yes for 1 and no for 0
+def __n354_yes_no ( value ) '{
+  return ( (value==1) ? "yes" : "no" )
+}'
+
+
+#%IU% (decimal_number)
+#%MDESC% Prints decimal, hexadecimal and binary of a given decimal number.
+def __n354_print_binary(x) '{
+  printf("int value: %d\n",x)
+  printf("hex value: 0x%x\n",x)
+  printf("bin value: %s\n",__dec2bin(x))
+}'
+
+
+#%IU% (decimal_number)
+#%MDESC% Decimal to binary conversion
+def __dec2bin(x) '{
+  local i b; b=""
+  for (i=31; i>=0; i--) {if (x & 1<<i) b=b"1"; else if (b||i<n) b=b"0"}
+  return (b)
+}'
+
+
+#%IU%  (binary_number)
+#%MDESC% Binary to decimal conversion
+def __bin2dec(x) '{
+  local nc ii nnn
+
+  nc = length(x)
+
+  if (nc > 32){
+      nc = 32
+  }
+
+  nn = 0
+
+  for (ii=nc; ii>0; ii--) {
+      nn += substr(x, ii, 1) << (nc - i)
+  }
+
+  return (nn)
+}'
+
+
+#%UU% (bin)
+#%MDESC%
+#    Returns the decimal value corresponding to string <b> binary
+# representation.
+# Max 32 bits
+# Returns -1 in case of error.
+def binary_to_decimal(bin) '{
+    local _nb_bits ii _bin_str  _dec  _bit
+
+    _nb_bits = length(bin)
+    # print "length:" _nb_bits
+
+    if (_nb_bits > 32){
+        print "ERROR : binary_to_decimal : argument too long (max 32 bits)"
+        return (-1)
+    }
+
+    _bin_str = sprintf("%s", bin)
+    #print "_bin_str " _bin_str
+
+    _dec = 0
+
+    for (ii = _nb_bits ; ii>0 ; ii--) {
+        _bit = substr(_bin_str, ii, 1)
+        # print _bit
+
+        if( (_bit == 0) || (_bit == 1) ){
+            _dec += substr(_bin_str, ii, 1) << (_nb_bits - ii)
+        }
+        else{
+            print "ERROR : binary_to_decimal : argument must contain only 0s and 1s"
+            return (-1)
+        }
+    }
+
+    return (_dec)
+}'
+
+
+
+#%IU% (decimal_number)
+#%MDESC%
+#    Returns the binary representation of a decimal number <x>.
+# Returns -1 is number is too big.
+def decimal_to_binary(x) '{
+    local ii _bin_rep
+
+    _bin_rep=""
+
+    if(x > pow(2, 32)){
+        print "Error : number too big (please fix this macros :))"
+        return(-1)
+    }
+
+    for (i=31; i>=0; i--) {
+        if (x & 1<<i) {
+            _bin_rep = _bin_rep"1"
+        }
+        else if (_bin_rep||i<n){
+            _bin_rep = _bin_rep"0"
+        }
+    }
+
+    return (_bin_rep)
+}'
+
+
+######################################################################
+##############################          ##############################
+##############################  MOTORS  ##############################
+##############################          ##############################
+######################################################################
+
+
+#%IU% (<motor_mnemonique>)
+#%MDESC%
+#    Returns 1 if..
+# Returns 0 otherwise.
+def motor_valid(mne) '{
+    local check_mnum
+
+    check_mnum = motor_num(mne)
+    return ((check_mnum >= 0) && (motor_mne(check_mnum) == mne))
+}'
+
+
+#%UU% ()
+#%MDESC%
+#
+def motors_disableall() '{
+    local motno
+
+    for ( motno  = 0; motno < MOTORS; motno++ ) {
+        motor_par( motno, "disable",1)
+    }
+}'
+
+
+#%UU% ()
+#%MDESC%
+#
+def motors_enableall() '{
+   local motno
+
+   for ( motno  = 0; motno <  MOTORS; motno++ ) {
+       motor_par( motno, "disable",0)
+   }
+}'
+
+
+#%UU% (<motors_list>)
+#%MDESC%
+#
+def motors_enable(motors_list) '{
+    # means disable=0
+    motors_set(motors_list, 0)
+}'
+
+#%UU% (<motors_list>)
+#%MDESC%
+#
+def motors_disable(motors_list) '{
+    # means disable=1
+    motors_set(motors_list, 1)
+}'
+
+
+#%UU% (<motors_list>, <state>)
+#%MDESC%
+#    Sets motors of the list <motors_list> in state <state> (0 to enable 1 to disable)
+def motors_set(motors_list, state) '{
+    local _motlist[]
+    local moti _mot_mne _mot_num
+
+    _motlist[0] = 0
+
+    split( motors_list, _motlist)
+
+    if (state) {
+        printf("disabling : ")
+    }
+    else {
+        printf("enabling : ")
+    }
+
+    for ( moti in _motlist ) {
+        _mot_mne = _motlist[moti]
+        _mot_num  = motor_num(_mot_mne)
+        printf("%s ", _mot_mne)
+        if (_mot_num < 0) {
+            printf ("ERROR : problem with motor %s(%s) \n", _mot_mne, _mot_num)
+        }
+        else {
+            motor_par( _mot_num, "disable", state )
+        }
+    }
+    printf("\n")
+}'
+
+
+#%UU% (<mot_num>)
+#%MDESC%
+#
+def motor_print_position(mot_num) '{
+    printf("A[%s] = %f\n", motor_mne(mot_num), A[mot_num])
+}'
+
+
+######################################################################
+#############################            #############################
+#############################  COUNTERS  #############################
+#############################            #############################
+######################################################################
+
+
+
+
+#%UU% (<cnt_id> : counter_num | counter_mne)
+#%MDESC%
+#    Returns 1 if the counter exists.
+def cnt_exists(cnt_id) '{
+
+    if(cnt_num(cnt_id) == -1){
+        if(cnt_mne(cnt_num(cnt_id))=="?"){
+            # print "#No such counter : " cnt_id
+            return (0)
+        }
+        else{
+            print "cnt_exists : What is this case???"
+        }
+    }
+    else{
+        if(cnt_num(cnt_id)==cnt_id){
+            # ok counter NUMBER "cnt_id "  exists."
+            return (1)
+        }
+        else{
+            # ok counter NAMED " cnt_id " exists."
+            return (1)
+        }
+    }
+}'
+
+
+#%UU%  (<cnt_id> : counter_num | counter_mne)
+#%MDESC%
+#
+def cnt_check(cnt_id)'{
+
+    if (cnt_exists(cnt_id)){
+        # ok counter exists
+        return (cnt_id)
+    }
+    else{
+        cprint(sprintf("cnt_check::ERROR::counter \"%s\" does not exist.\n", cnt_id), 1)
+    }
+}'
+
+
+#%UU% (<cnt_id> : counter_num | counter_mne)
+#%MDESC%
+#
+def cnt_enable(cnt_id) '{
+
+    if (cnt_id == 0 || cnt_num(cnt_id) == 0){
+        cprint_pink("cnt_enable() : Warning : you are enabling counter 0...")
+    }
+
+    if (cnt_exists(cnt_id)){
+        counter_par(cnt_id, "disable", 0)
+    }
+    else{
+        cprint(sprintf("cnt_enable--WARNING--counter \"%s\" does not exist.", cnt_id),3)
+    }
+}'
+
+
+#%UU% (<cnt_id> : counter_num | counter_mne)
+#%MDESC%
+#
+def cnt_disable(cnt_id) '{
+    if (cnt_id == 0 || cnt_num(cnt_id) == 0){
+        cprint_pink("cnt_disable() : Warning : you are disabling counter 0...")
+    }
+
+    if (cnt_exists(cnt_id)){
+        counter_par(cnt_id, "disable", 1)
+    }
+    else{
+        cprint(sprintf("cnt_disable--WARNING--counter \"%s\" does not exist.", cnt_id),3)
+    }
+}'
+
+#%UU% (<cnt_id> : counter_num | counter_mne)
+#%MDESC%
+#    Disables counter <cnt_id> whitout error message if it does not
+# exists. Useful to disable devices in SPEC setups.
+def cnt_disable_silent(cnt_id) '{
+    if (cnt_id == 0 || cnt_num(cnt_id) == 0){
+        cprint_pink("cnt_disable() : Error : you are disabling counter 0...")
+    }
+
+    if (cnt_exists(cnt_id)){
+        counter_par(cnt_id, "disable", 1)
+    }
+}'
+
+def counters_disableall() '{
+    local cntno
+
+    for ( cntno = 0 ; cntno <  COUNTERS ; cntno++ ) {
+        cnt_disable(cntno)
+    }
+}'
+
+def counters_enableall() '{
+   local cntno
+
+   for ( cntno  = 0 ; cntno <  COUNTERS ; cntno++ ) {
+       cnt_enable(cntno)
+   }
+}'
+
+def counters_enable( counters_list ) '{
+
+    # disable=0
+    counters_set( counters_list, 0 )
+}'
+
+def counters_disable( counters_list ) '{
+
+    # disable=1
+    counters_set( counters_list, 1 )
+}'
+
+
+# Sets counters in the list <counters_list> in state <state>.
+# 0 to enable 1 to disable
+def counters_set(counters_list, state) '{
+    local cntlist cnti cntmne cntno
+
+    cntlist[0]=0
+
+    split( counters_list, cntlist )
+
+    # for all counters in the list, disable is set state
+
+    if (state) {printf("disabled: ")} else {printf("enabled: ")}
+
+    for ( cnti in cntlist ) {
+        printf("%s ", cntlist[cnti])
+        cntmne = cntlist[cnti]
+        cntno  = cnt_num(cntmne)
+        if (cntno < 0) {
+            printf ("ERRROR--counters_set--problem with counter %s \n", cntmne)
+        }
+        else {
+            if(state == 1){
+                cnt_disable(cntno)
+            }
+            else{
+                cnt_enable(cntno)
+            }
+        }
+    }
+    printf("\n")
+}'
+
+
+#
+#
+# def show_counters() '{
+#     local   i j s _fields _max_fields
+#
+#     printf("\nCurrent counter configuration:\n")
+#     printf("------------------------------------")
+#     printf("------------------------------------")
+#     printf("--------------------------\n")
+#     printf("Num  Mnemonic  Plot          |  ")
+#     printf("Num  Mnemonic  Plot          |  ")
+#     printf("Num  Mnemonic  Plot\n")
+#     printf("------------------------------------")
+#     printf("------------------------------------")
+#     printf("--------------------------\n")
+#
+#     _fields      = 0
+#     _max_fields  = 0
+#     _empty_field = "           "
+#
+#     for (i = 0; i < COUNTERS; i++) {
+#         _fields = 0
+#
+#         if (i == MON)
+#             _fields++
+#         if  (i == DET)
+#             _fields++
+#         if (counter_par(i, "disable"))
+#             _fields++
+#
+#         if(_fields > _max_fields){
+#             _max_fields = _fields
+#         }
+#     }
+#
+#     for (i = 0; i < COUNTERS; i++) {
+#         s = "NO"
+#         for (j = 0; j < PLOT_NUM; j++){
+#             if (cnt_num(PLOT_SEL[j]) == i) {
+#                 s = "YES"
+#                 break
+#             }
+#         }
+#
+#         _fields = _max_fields
+#
+#         if (i == MON)
+#             _fields--
+#         if  (i == DET)
+#             _fields--
+#         if (counter_par(i, "disable"))
+#             _fields--
+#
+#         printf("%3d %8s %4s", i, cnt_mne(i), s)
+#
+#         if (i == MON)
+#             printf("  (is MON) ")
+#
+#         if (i == DET)
+#             printf("  (is DET) ")
+#
+#         if (counter_par(i, "disable"))
+#             printf(" (Disabled)")
+#
+#         for (jj=0; jj<_fields; jj++){
+#             printf("%s", _empty_field)
+#         }
+#
+#         # 3 columns
+#         # every 3 counter, I print a newline.
+#         if((i+1)%3) {
+#             printf (" |  ")
+#         }
+#         else{
+#             print
+#         }
+#     }
+#     if (MON < 0 || DET < 0 || DET >= COUNTERS) {
+#         print
+#         if (MON < 0)
+#             printf("Monitor counter is disabled.\n")
+#         if (DET < 0 || DET >= COUNTERS)
+#             printf("Bad value for DET (%d).\n", DET)
+#     }
+#
+#     printf("\n------------------------------------")
+#     printf("------------------------------------")
+#     printf("--------------------------\n")
+#
+# }'
+#
+
+
+
+#%UU%(path)
+#%MDESC%courtesy of zapxmap.mac: original macro name _zap_xmap_convert_path(path).
+#convert a unix path to windows path, using a unix path and a translation table.
+def ux2dos_directory2dos(path) '{
+    # data directories from UNIX to WINDOWS.
+    local wpath udir addpath wpath is
+
+    wpath= path
+    for (udir in UX2DOS_DIR) {
+        if (index(path, udir)==1) {
+            wpath= UX2DOS_DIR[udir] substr(path, length(udir)+1)
+        }
+    }
+
+    while ((is=index(wpath, "/"))>0) {
+        wpath= substr(wpath, 0, is-1) "\\" substr(wpath, is+1)
+    }
+
+    return (wpath)
+}
+'
+
+#%UU%(path)
+#%MDESC%
+#convert a dos path to unix path, using a dos path and a translation table.
+#NOTE: if arg is given as string, each backslash needs to be doubled!
+def ux2dos_directory2ux(path) '{
+    # data directories from WINDOWS to UNIX.
+    local wpath udir addpath wpath is
+
+    upath= path
+    for (udir in UX2DOS_DIR) {
+        if (index(path,UX2DOS_DIR[udir])==1) {
+            upath= udir substr(path, length(UX2DOS_DIR[udir])+1)
+        }
+    }
+
+    while ((is=index(upath, "\\"))>0) {
+        upath= substr(upath, 0, is-1) "/" substr(upath, is+1)
+    }
+
+    return (upath)
+}
+'
+
+
+#%UU%
+#%MDESC%
+def ux2dos_add_paths '{
+    # Makes a list of correspondance between file system on UNIX and on WINDOWS
+    # to be used by ux2dos_directory to create WINDOWS path from UNIX PATH
+    # ex:
+    #    /data/id21/inhouse ====> Z:\inhouse
+    # note: the /data directory from Linux can be found under \\bldata in Windows.
+    global UX2DOS_DIR[]
+#    UX2DOS_DIR["/data"]= "\\\\bldata"
+    local udir wdir
+
+    if ($#==2) {
+        udir= "$1"
+        wdir= "$2"
+    } else {
+        udir= getval("Unix directory name", "")
+        wdir= getval("Windows map name", "")
+    }
+
+    if ((length(udir)>0)&&(length(wdir)>0)) {
+        UX2DOS_DIR[udir]= wdir
+    }
+    if (!("/data" in UX2DOS_DIR)) {
+        UX2DOS_DIR["/data"] = "\\\\bldata"
+    }
+    if (!("/tmp" in UX2DOS_DIR)) {
+        UX2DOS_DIR["/tmp"] = "C:\\Temp"
+    }
+
+}
+'
+
+#%UU%
+#%MDESC%
+def ux2dos_del_paths '{
+    global UX2DOS_DIR[]
+    if ($#==1) {
+        udir= "$1"
+    } else {
+        udir= getval("Unix directory name", "")
+    }
+    delete UX2DOS_DIR[udir]
+}
+'
+
+#%UU%
+#%MDESC%Shows directory mapping between UNIX and WINDOWS
+def ux2dos_dirshow '{
+    global UX2DOS_DIR[]
+    local maxlen
+
+    maxlen= 20
+
+    for (udir in UX2DOS_DIR){
+        maxlen= length(udir)>maxlen?length(udir):maxlen
+    }
+
+    printf("%*.*s  ==>  -- WINDOWS MAP --\n", maxlen, maxlen, \
+           "-- UNIX DIRECTORY --")
+
+    for (udir in UX2DOS_DIR) {
+        printf("%*.*s  ==>  %s\n", maxlen, maxlen, udir, UX2DOS_DIR[udir])
+    }
+}
+'
+
+#%UU%
+#%MDESC%test the ux2dos pathname conversion
+def test_ux2dos_pathname_conversion '{
+    print_boxed(" path conversion unix to windows and back ", -1)
+    local wpath upath
+    print "* add \"/bla\" to be converted to drive letter \"P:\""
+    ux2dos_add_paths "/bla" "P:"
+    print "* show all conversions, /data and /tmp are added automatically"
+    ux2dos_dirshow
+    upath = "/data/visitor/fictive0815"
+    print "* convert", upath, "to windows", wpath = ux2dos_directory2dos(upath)
+    print "* convert", wpath, "to linux  ", upath = ux2dos_directory2ux(wpath)
+    upath = "/bla/anything/kolnischwasser4711"
+    print "* convert", upath, "to windows", wpath = ux2dos_directory2dos(upath)
+    print "* convert", wpath, "to linux  ", upath = ux2dos_directory2ux(wpath)
+    upath = "/tmp/zafford-bebelbrocks"
+    print "* convert", upath, "to windows", wpath = ux2dos_directory2dos(upath)
+    print "* convert", wpath, "to linux  ", upath = ux2dos_directory2ux(wpath)
+}'
+
+
+######################################################################
+#####################                            #####################
+#####################  SIMULATION MODE WARINING  #####################
+#####################                            #####################
+######################################################################
+
+def sim_warn() '{
+    if (set_sim(-1)) {
+        tty_cntl("md")
+        print "   TAKE CARE :  YOU ARE IN SIMULATION MODE        "
+        tty_cntl("me")
+    }
+}'
+
+def sim_warn_on '{
+    cdef ("prompt_mac" , "\n sim_warn() \n", "_sim_key_" )
+}'
+
+def sim_warn_off '{
+    cdef ("prompt_mac" , "", "_sim_key_", "delete" )
+}'
+
+
+
+#%MACROS%
+#%IMACROS%
+#%AUTHOR% BLISS (Compilation).
+#%TOC%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

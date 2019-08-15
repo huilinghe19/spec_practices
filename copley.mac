@@ -1,0 +1,324 @@
+#%TITLE% COPLEY.MAC
+#%NAME% COPLEY.MAC - TANGO attribute macro motors.
+#                     ============================
+#                        Copley Controller Motors
+#                     ============================
+#
+#%DESCRIPTION%
+#     The macro set offers the possibility to set-up a TANGO attribute
+#     as macro motor
+#     Only read/write TANGO attributes can be used as macro motor.
+#     The macro motor controller defined is called "test"
+#
+#%SETUP%
+#Motor and Counter Device Configuration (Not CAMAC)
+# MOTORS        DEVICE   ADDR  <>MODE      NUM                                 <>TYPE
+# YES            copley    -                10                           Macro Motors
+#
+# take care to set the NUM field to the good number of macro_motors you need.
+#
+#%EXAMPLE%
+#%DL%
+#
+#
+#%DT% test_setup tilt stepper/hhl/1    Position %DD%
+#    Set-up the TANGO attribute macro motor with the mnemonic "tilt"
+#
+#
+#%XDL%
+#
+#%END%
+
+# for color printing :)
+# need spec_utils
+
+# Macro-MOTORS parameters.
+global COPLEY
+COPLEY_ERROR = "COPLEY_MOTOR: error on reading attribute macro motor"
+
+
+######################################################################
+##############################           #############################
+##############################  General  #############################
+##############################           #############################
+######################################################################
+
+
+#%UU%
+#%MDESC%
+#    Removes everything about attributes.mac
+def copley_unsetup '{
+    copley_unsetup_all
+}'
+
+
+#%IU%
+#%MDESC%
+#    Cosmetics.
+def copley_error_head '{
+    tty_cntl("md")
+    printf("ERROR: ")
+    tty_cntl("me")
+}'
+
+
+######################################################################
+###########################                ###########################
+###########################  Macro motors  ###########################
+###########################                ###########################                                                                                                         
+
+##%UU% <mne> <dev> <attribute>
+#%MDESC%
+# Configures motor <mne> to read <attribute> of tango device <dev>.
+#
+
+
+# example 2  copley_setup copley  stepper/hhl/3  Refill_time
+#
+def copley_setup '{
+    local _fields  _dev_name   _nbarg
+    local _args_strings  _mne
+
+    _mne   = "$1"
+    motnum = motor_num(_mne)
+    _nbarg = $#
+
+    # Parses arguments to extract device and attribute names.
+    if (_nbarg == 3){
+        if(motor_par(motnum,"type") != -1){
+            COPLEY[_mne]["type"] = motor_par(motnum,"type")
+        }
+        # print "3 parameters given."
+        COPLEY[_mne]["dev_name"] = "$2"
+        COPLEY[_mne]["attr_name"] = "$3"
+    }
+    else {
+        test_error_head
+        print "$0 requires 3 arguments."
+        print "usage -> $0  <mne> <device> <attribute>"
+        exit
+    }
+
+    # Informative message.
+    printf("Configuring macro motor ")
+    tty_cntl("md")
+    printf ("%s", "$1")
+    tty_cntl("me")
+    printf (" to reflect attribute ")
+    tty_cntl("md")
+    printf ("%s", COPLEY["$1"]["attr_name"])
+    tty_cntl("me")
+    printf (" of device ")
+    tty_cntl("md")
+    printf ("%s", COPLEY["$1"]["dev_name"])
+    tty_cntl("me")
+    print "."
+
+    if (motor_num(_mne) < 0){
+        printf("Warning: motor \"%s\" is not defined\n", _mne)
+    }
+}'
+
+
+#%UU%
+#%MDESC%
+#    Removes reading of all attributes.
+def copley_unsetup_all '{
+    unglobal COPLEY
+}'
+
+
+#%IU%
+#%MDESC%
+#    Called on reconfig.
+
+def copley_config(motnum, what, p1, p2) '{
+   global COPLEY
+   local _ds_name
+
+   if((motnum == "..") && (what == "ctrl")) {
+       # Check that the Tango DS is running
+       if(ds_is_tango("stepper/hhl/3")) {
+	    printf("stepper/hhl/3 is open.")
+            # ok
+       }
+       else{
+           copley_motor_error_head
+           printf("%s unresponsive -> disabling. \n", test_ADDR)
+           return ".error."
+       }
+       return
+   }
+
+   if(what == "mot") {
+       local _mne
+       local _attr
+
+       _mne = motor_mne(motnum)
+
+       printf("COPLEY: Motor %10s linked to %s/%s\n",     \
+              _mne, COPLEY[_mne]["dev_name"], COPLEY[_mne]["attr_name"])
+    }
+}'
+
+#%IU%
+#%MDESC%
+#
+def copley_cmd(motnum, what, p1, p2) '{
+    local _mot_mne  _dev  _attr
+    local _pos_limit_sw  _neg_limit_sw _soft_pos_limit _soft_neg_limit
+
+    _mot_mne = motor_mne(motnum)
+    _dev    = COPLEY[_mot_mne]["dev_name"]
+    _attr   = COPLEY[_mot_mne]["attr_name"]
+    _target = _dev "/" _attr
+  
+
+    if(motnum == ".."){
+        # key applying to all motors
+        # print "--"
+    }
+
+    #-------------------------------------
+    # "position" must return dial position (in integer steps)
+    # parameters: none
+    if (what == "position") {
+        local _pos
+          
+        if (motor_par(motnum, "type") == -1){
+            cprint_red(sprintf("copey_cmd / position : motor %d is not defined", motnum))
+        }
+        else{
+            _pos = tango_get(_dev, _attr)
+            print(_pos)
+            if (TANGO_ERR) {
+               tty_cntl("md")
+               print "\n" COPLEY_ERROR " " _mot_mne  " " _dev  "/"  _attr
+               printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+               print TANGO_ERR_STACK
+               tty_cntl("me")
+               exit
+            }  
+        }
+        return (_pos)
+    }
+
+    #-------------------------------------
+    # "get_status" called during the motion, must return a bit mask
+
+
+    # bits meaning: 0 if motor idle
+    #               2 if motor moving
+    #               4 if negative limit on
+    #               8 if positive limit on
+    #              16 if motor halted with emergency stop
+    #              32 if motor is faulty (spec >= 5.07.04-4
+    # parameters:   none
+    if (what == "get_status") {
+        local _state
+        local _ret
+        local _tmp
+
+        _ret = 0
+        # read arbitrary attribute because otherwise State attribute is not updated
+        #_tmp = tango_get(_dev, "Status")
+        _state = tango_io(_dev, "State")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+
+        if (_state == 6) {
+           #
+           # DEVMOVING
+           #
+            _ret |= 2
+            # return _ret
+        }
+        else if (_state == 8) {
+           #
+           # DEVFAULT
+                                                                           
+           #
+            _ret |= 32
+            # return _ret
+        }
+        else {
+            _ret = 0
+        }
+        # now check whether negative limit is set
+        _neg_limit_sw = tango_get(_dev, "CcwLimit")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        if (_neg_limit_sw > 0) {
+            _ret |= 4
+        }
+        # finally positive limit
+        _pos_limit_sw = tango_get(_dev, "CwLimit")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        if (_pos_limit_sw > 0) {
+            _ret |= 8
+        }
+        return _ret
+    }
+
+    #-------------------------------------
+    # "start_one"
+    # parameters: p2 is relative motion, p1 is absolute requested position
+    if (what == "start_one") {
+        tango_put(_dev, _attr, p1)
+        tango_io(_dev, "Move")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" COPLEY_MOTOR_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        return
+    }
+
+    #-------------------------------------
+
+    # "set_position" called on "set_dial motor newpos"
+    # parameters: p1 is the new position (in steps)
+    #
+    if (what == "set_position") {
+        tango_put(_dev, _attr, p1)
+        return 
+	}
+    if (what == "abort_one") {
+        tango_io(_dev, "StopMove")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        return
+    }
+}'
+
+
+
+

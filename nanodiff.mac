@@ -1,0 +1,441 @@
+#%TITLE% NANODIFF.MAC
+#%NAME% NANODIFF.MAC - Macros to control the BL14.2 nano diffractometer
+#%DESCRIPTION%
+# The macros give access to the fast shutter and the oscillation scan
+# of the nano diffractometer via the Aerotech TANGO device server.
+# The setup needs the name of the TANGO device as parameter to
+# open the access for the macros to the device server and the oscillation
+# motor mnemonic.
+#%END%
+
+global NANODIFF_BEAM_LOCATION_SAMPLE_MOVED
+global NANODIFF_CURRENT_PHASE
+
+#%UU% [device_name oscil_motor_name]
+#%MDESC% Declare the micro diffractometer device to be used by the macros.
+def nanodiff_setup '{
+  global NANODIFF_DEVICE OSCIL_MOTOR_NAME OSCIL_MOTOR_NUM
+  global NANODIFF_DEBUG
+
+  if ($# != 2) {
+    NANODIFF_DEVICE = getval("Nanodiff tango device name:", NANODIFF_DEVICE)
+    OSCIL_MOTOR_NAME = getval("Oscillation motor name:", OSCIL_MOTOR_NAME) 
+  } else {
+    NANODIFF_DEVICE = "$1"
+    OSCIL_MOTOR_NAME = "$2"
+  }
+
+  OSCIL_MOTOR_NUM = motor_num(OSCIL_MOTOR_NAME)
+  if (OSCIL_MOTOR_NUM  == -1) {
+    tty_cntl("md")
+    eprintf("Invalif oscillation motor %s, check the spec config!\n", OSCIL_MOTOR_NAME)
+    tty_cntl("me")
+    return
+  }
+
+  cdef("prompt_mac", "nanodiff_prompt\n","_nanodiff_")
+}'
+
+#%UU%
+#%MDESC% Clean-up all hooks for the set of macros
+def nanodiff_unsetup '{
+  cdef("", "", "_nanodiff_", "delete")
+}'
+
+#%IU%
+#%MDESC% Delete the hook created for the cleanup
+def nanodiff_prompt '{
+   cdef("", "", "nanodiff_cleanup", "delete")
+}'
+
+#-------- XRF detector --------
+
+def nanodiff_xrfdet_is_in() '{
+
+  local _xrfdet_is_in
+
+ # _xrfdet_is_in = (tango_get("bl142/FluoDetLimitIn/A12_3", "State") == 2)  		#old
+  _xrfdet_is_in = (tango_get ("bl142/FluoDetector/IsInBeam", "State") == 2)
+  if (TANGO_ERR) {
+    print_tango_err();
+    egui_fatal("Nanodiff XRF detector: error checking device position.");
+    exit;
+  }
+  return _xrfdet_is_in;
+}'
+  
+def nanodiff_xrfdet_is_out() '{
+
+  local _xrfdet_is_out
+
+  #_xrfdet_is_out = (tango_get("bl142/FluoDetLimitOut/A12_4", "State") == 2) 		 #old
+   _xrfdet_is_out = (tango_get ("bl142/FluoDetector/IsOutBeam",  "State") == 2)
+  if (TANGO_ERR) {
+    print_tango_err();
+    egui_fatal("Nanodiff XRF detector: error checking device position.");
+    exit;
+  }
+  return _xrfdet_is_out;
+}'
+  
+def nanodiff_move_xrfdet_in() '{
+  local i
+  local _xrfdet_is_in
+
+#  tango_io("bl142/FlouDet/A3_2", "Close")   		#old
+   tango_io ("bl142/FluoDetector/MoveInBeam", "Close")
+  if (TANGO_ERR) {
+    print_tango_err();
+    egui_fatal("Nanodiff XRF detector: Failed to launch move command.");
+    exit;
+  }
+  for (i = 5; i > 0; i--) {
+    _xrfdet_is_in = nanodiff_xrfdet_is_in()
+    if (_xrfdet_is_in) {
+      break;
+    }
+    else {
+      sleep(1.0);
+    }
+  }
+  if (!_xrfdet_is_in) {
+    # Timeout waiting for in-position
+    egui_fatal("Nanodiff XRF detector: In position could not be reached.");
+    exit;
+  }
+  return 0;
+}'
+  
+def nanodiff_move_xrfdet_out() '{
+
+#  tango_io("bl142/FlouDet/A3_2", "Open")  		 #old
+   tango_io ("bl142/FluoDetector/MoveInBeam", "Open")
+  if (TANGO_ERR) {
+    print_tango_err();
+    egui_fatal("Nanodiff XRF detector: Failed to launch move command.");
+    exit;
+  }
+  for (i = 5; i > 0; i--) {
+    _xrfdet_is_out = nanodiff_xrfdet_is_out()
+    if (_xrfdet_is_out) {
+      break;
+    }
+    else {
+      sleep(1.0);
+    }
+  }
+  if (!_xrfdet_is_out) {
+    # Timeout waiting for out-position
+    egui_fatal("Nanodiff XRF detector: Out position could not be reached.");
+    exit;
+  }
+  return 0;
+}'
+  
+#-------- XRF detector end --------
+
+#-------- gonio cover --------
+
+def nanodiff_gonio_cover_close() '{
+
+#  _backlight_is_up = (tango_get("bl142/BackLightLimitDown/A11_2", "State") != 2)		#old
+   _backlight_is_up = ( tango_get ("bl142/BackLight/IsDown", "State") != 2)
+  _veto = (A[collz] > -3) || (A[scintz] > 1) || (A[bstopz] > 2) || _backlight_is_up # changed CFE 30-01-17
+# _veto = (A[apz] > 0.5) || (A[collz] > -3) || (A[scintz] > 1) || (A[bstopz] > 2) || _backlight_is_up
+
+  if (!_veto) {
+#    tango_io("bl142/OrganDeviceCoverCtrl/A2_2", "Close")		#old
+     tango_io("bl142/OrganDeviceCover/MoveClose", "Close")	
+  }
+  return
+}'
+
+def nanodiff_gonio_cover_open() '{
+
+#  tango_io("bl142/OrganDeviceCoverCtrl/A2_2", "Open")    		#old
+   tango_io ("bl142/OrganDeviceCover/MoveClose", "Open")
+#  _state = tango_get("bl142/OrganDeviceCoverOpen/A11_4", "State")   	#old
+   _state = tango_get ("bl142/OrganDeviceCover/IsOpened", "State")
+  while (_state != 2) {
+#    _state = tango_get("bl142/OrganDeviceCoverOpen/A11_4", "State")   	#old
+     _state = tango_get ("bl142/OrganDeviceCover/IsOpened", "State")
+    sleep(0.1)
+  }
+  return
+}'
+
+#-------- gonio cover end --------
+
+#-------- cryojet control --------
+
+def nanodiff_cryo_far() '{
+
+  #tango_io("bl142/cryojetDown/A3_1", "Open")		#old
+   tango_io("bl142/CryojetModbus/MoveNear", "Open")
+  return
+}'
+
+def nanodiff_cryo_near() '{
+
+  #tango_io("bl142/cryojetDown/A3_1", "Close")		#old
+   tango_io("bl142/CryojetModbus/MoveNear", "Close")
+  return
+}'
+
+#-------- cryojet control end --------
+
+#-------- back light --------
+
+def nanodiff_backlight_up() '{
+
+#  tango_io("bl142/backlightUp/A2_1", "Close")		#old
+   tango_io("bl142/BackLight/MoveUp", "Close")
+  #tango_io("idgb/led/ctl", "Backlight_on")
+  #tango_io("LEDctl/idgb/led", "Backlight_on")        ## CFE: might need the new PATH: "LEDIdgb/led/back", "LightOn" 
+  tango_io("LEDIdgb/led/back", "LightOn")  # changed by CFE
+  return
+}'
+
+def nanodiff_backlight_down() '{
+
+  # tango_io("LEDctl/idgb/led", "Backlight_off")        ## CFE: might need the new PATH: "LEDIdgb/led/back", "LightOff" 
+  tango_io("LEDIdgb/led/back", "LightOff") 
+#  tango_io("bl142/backlightUp/A2_1", "Open")		#old
+  tango_io("bl142/BackLight/MoveUp", "Open")
+  return
+}'
+
+#-------- back light end --------
+
+#-------- front light --------
+
+def nanodiff_frontlight_off() '{
+
+  # tango_io("idgb/led/ctl", "Frontlight_off")        
+  # tango_io("LEDctl/idgb/led", "Frontlight_off")       ## CFE: might need the new PATH: "LEDIdgb/led/front", "LightOff"
+  tango_io("LEDIdgb/led/front", "LightOff")             # changed by CFE
+  return
+}'
+
+def nanodiff_frontlight_on() '{
+
+  #tango_io("idgb/led/ctl", "Frontlight_on")
+  #tango_io("LEDctl/idgb/led", "Frontlight_off")         ## CFE: might need the new PATH: "LEDIdgb/led/front", "LightOn"
+  tango_io("LEDIdgb/led/front", "LightOn")               # changed by CFE
+  return
+}'
+
+def nanodiff_frontlight_level(intensity) '{
+
+  # tango_put("idgb/led/ctl", "Brightness", intensity)   #changed by CFE
+  tango_put("LEDIdgb/led/front", "Brightness", intensity)  #changed by CFE
+  return
+}'
+#-------- front light end --------
+
+#-------- fast shutter --------
+#%IU% ()
+#%MDESC% Return the fast shutter position.
+def _msstate() '{
+  local st
+
+  print "Nanodiff stub: _msstate"
+}'
+
+#%IU% ()
+#%MDESC% Open the fast shutter
+def nanodiff_msopen '{
+
+  tango_io(NANODIFF_DEVICE, "ReadWrite", "dout x, 1, 0:1")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error opening the fast_shutter.")
+  }
+}'
+
+#%IU% ()
+#%MDESC% Close the fast shutter
+def nanodiff_msclose '{
+
+  tango_io(NANODIFF_DEVICE, "ReadWrite", "dout x, 1, 0:0")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error opening the fast_shutter.")
+  }
+}'
+
+#%UU%
+#%MDESC% Open the fast shutter.
+def msopen '{
+  nanodiff_msopen
+}'
+
+#%UU%
+#%MDESC% Close the fast shutter.
+def msclose '{
+  nanodiff_msclose
+}'
+#-------- fast shutter end --------
+
+
+def phi_cleanup '{ }'
+
+
+def nanodiff_abort_scan() '{
+
+  tango_io(NANODIFF_DEVICE, "StopUserTask3")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: cannot abort scan!")
+  }
+}'
+
+#%IU%
+#%MDESC% Called from the cleanup (by typing Ctrl-C). Stops properly
+# the scan.
+def nanodiff_cleanup '{
+
+  tango_io(NANODIFF_DEVICE, "StopUserTask3")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("MD2: cannot abort scan. Cleanup not finished!")
+  }
+}'
+
+#%IU%
+#%MDESC% hook the oscillation to the data collection macro.
+def nanodiff_oscil_on '{
+  cdef("osc_scan","nanodiff_osc_scan_m","_pxoscil",0x20)
+  cdef("osc_prepare","nanodiff_prepare_oscil","_pxoscil",0x20)
+}'
+
+#%IU%
+#%MDESC% Remove the data collection macro hook
+def nanodiff_oscil_off '{
+  cdef("","","_pxoscil","delete")
+}'
+
+#%IU%
+#%MDESC% Dummy macro required by the prodc data collection one.
+def nanodiff_prepare_oscil '{
+  print $*
+  printf("nanodiff_prepare_oscil, not used\n")
+}'
+
+
+#-------- oscillation --------
+#%IU% [start_angle scan_range exposure_time fast_shutter_flag]
+#%MDESC% Program the oscillation frame on the nanodiffractometer.
+def nanodiff_osc_scan_m '{
+
+  nanodiff_osc_scan($1,$2,$3,$4)
+}'
+
+#%IU% (start_angle, end_angle, exposure_time, nr_osc, flag)
+#%MDESC% Program the oscillation frame from %B%start_angle%B% to
+# %B%end_angle%B% for %B%exposure_time%B% seconds.
+# Parameter %B%nr_osc%B% not implemented.
+# If %B%flag%B% = 1, do not open the fastshutter.
+def nanodiff_osc_scan(start_angle, end_angle, exposure_time, nr_osc, flag) '{
+  local t0
+  local cmd
+  local scan_range
+
+  flag = 0
+
+  t0 = time()
+  printf("entering nanodiff_osc_scan... ");
+  p start_angle, end_angle, exposure_time, flag
+
+  scan_range = end_angle - start_angle
+
+  cdef ("cleanup_once","nanodiff_cleanup\n", "_nanodiff_")
+
+  cmd = sprintf("dglobal(0)=%f", start_angle)
+  tango_io(NANODIFF_DEVICE, "ReadWrite", cmd)
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error setting omega scan parameters.")
+    exit
+  }
+  cmd = sprintf("dglobal(1)=%f", scan_range)
+  tango_io(NANODIFF_DEVICE, "ReadWrite", cmd)
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error setting omega scan parameters.")
+    exit
+  }
+  cmd = sprintf("dglobal(2)=%f", exposure_time)
+  tango_io(NANODIFF_DEVICE, "ReadWrite", cmd)
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error setting omega scan parameters.")
+    exit
+  }
+  cmd = sprintf("iglobal(0)=%d", flag)
+  tango_io(NANODIFF_DEVICE, "ReadWrite", cmd)
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error setting omega scan parameters.")
+    exit
+  }
+
+  tango_io(NANODIFF_DEVICE, "StartUserTask3", "omega_scan_bessy.bcx")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: error starting the scan.")
+    exit
+  }
+  if (NANODIFF_DEBUG)
+    egui_logmsg("scan started")
+  printf(" - command executed in %3.2f ms.\n", 1000*(time()-t0))
+  sleep(1)
+  if (wait_ready() == -1) {
+    egui_fatal("Nanodiff: error waiting for the motors to finish movement")
+    exit
+  } else {
+    if (NANODIFF_DEBUG)
+      egui_logmsg("scan started")
+    printf(" - command executed in %3.2f ms.\n", 1000*(time()-t0))
+    egui_logmsg("scan finished")
+    printf(" Scan took %3.2f ms.\n", 1000*(time()-t0))
+  }
+}'
+#-------- oscillation end --------
+
+#%IU% ()
+#%MDESC% Wait until movement has finished. 
+def wait_ready() '{
+
+  local _finished
+
+  tango_io("bl142/aerotech/omega", "State")
+  if (TANGO_ERR) {
+    print_tango_err()
+    egui_fatal("Nanodiff: cannot read the nanodiff omega motor state.")
+    return(-1)
+  }
+  #while ((tango_io("bl142/aerotech/omega", "State") == 6) || (tango_get("bl142/aerotech/omega", "UserTask3State") == "RUNNING")) {
+  #  local_wait
+  #  sleep(.100)
+  #}
+  _finished = 0
+  while (!_finished) {
+    _omega_state = tango_io("bl142/aerotech/omega", "State")
+    _task_state = tango_get("bl142/aerotech/omega", "UserTask3State")
+    local_wait
+    sleep(.100)
+    if ((_omega_state != 6) && (_task_state != "RUNNING")) {
+      _finished = 1
+    }
+  }
+  if (tango_io("bl142/aerotech/omega", "State") == 8) {
+    egui_fatal(tango_io("bl142/aerotech/omega", "Status"))
+    return (-1)
+  }
+  return(0)
+}'
+
+
+cdef ("local_wait","","")
+

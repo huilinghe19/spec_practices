@@ -1,0 +1,146 @@
+#%TITLE% TEST.MAC
+#%NAME% TEST.MAC - TANGO attribute macro motors.
+#                     ============================
+#                        Copley Controller Motors
+#                     ============================
+#
+#%DESCRIPTION%
+#     The macro set offers the possibility to set-up a TANGO attribute
+#     as macro motor
+#     Only read/write TANGO attributes can be used as macro motor.
+#     The macro motor controller defined is called "test"
+#
+#%SETUP%
+#Motor and Counter Device Configuration (Not CAMAC)
+# MOTORS        DEVICE   ADDR  <>MODE  NUM                                 <>TYPE
+# YES          test    -                10                           Macro Motors
+#
+# take care to set the NUM field to the good number of macro_motors you need.
+#
+#%EXAMPLE%
+#%DL%
+#
+#
+#%DT% test_setup tilt stepper/hhl/3    Position %DD%
+#    Set-up the TANGO attribute macro motor with the mnemonic "tilt"
+#
+#
+#%XDL%
+#
+#%END%
+
+# for color printing :)
+# need spec_utils
+
+# Macro-MOTORS parameters.
+global TEST
+TEST_ERROR = "TEST: error on reading attribute macro motor"
+
+
+######################################################################
+##############################           #############################
+##############################  General  #############################
+##############################           #############################
+######################################################################
+
+
+#%UU%
+#%MDESC%
+#    Removes everything about attributes.mac
+def test_unsetup '{
+    test_unsetup_all
+}'
+
+
+#%IU%
+#%MDESC%
+#    Cosmetics.
+def test_error_head '{
+    tty_cntl("md")
+    printf("ERROR: ")
+    tty_cntl("me")
+}'
+
+
+######################################################################
+###########################                ###########################
+###########################  Macro motors  ###########################
+###########################                ###########################                                                                                                         
+
+
+
+def test_setup '{
+    global TEST_DEVICE OSCIL_MOTOR_NAME OSCIL_MOTOR_NUM
+    global TEST_DEBUG
+    if ($# != 2) {
+        TEST_DEVICE = getval("copley control tango device name:", TEST_DEVICE)
+        OSCIL_MOTOR_NAME = getval("Oscillation motor name:", OSCIL_MOTOR_NAME) 
+  } else {
+        TEST_DEVICE = "$1"
+        OSCIL_MOTOR_NAME = "$2"
+  }
+
+  OSCIL_MOTOR_NUM = motor_num(OSCIL_MOTOR_NAME)
+  if (OSCIL_MOTOR_NUM  == -1) {
+    tty_cntl("md")
+    eprintf("Invalif oscillation motor %s, check the spec config!\n", OSCIL_MOTOR_NAME)
+    tty_cntl("me")
+    return
+  }
+
+  cdef("prompt_mac", "test_prompt\n","_test_")
+}'
+
+
+#    Removes reading of all attributes.
+def test_unsetup_all '{
+    cdef("", "", "_test_", "delete")
+}'
+
+
+def test_prompt '{
+   cdef("", "", "test_cleanup", "delete")
+}'
+
+
+def test_move '{
+  tango_io(TEST_DEVICE, "Move")
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'
+
+def test_getPosition '{
+  _position = tango_get(TEST_DEVICE, "Position")
+  print(_position)
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'
+
+
+def test_setPosition(newPosition) '{
+ 
+  tango_put(TEST_DEVICE, "Position", newPosition)
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'
+
+def test_getState'{
+  _state = tango_io(TEST_DEVICE, "State")
+  print(_state)
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'
+
+def test_getStatus'{
+ 
+  _status  = tango_get(TEST_DEVICE, "Status")
+  print(_status)
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'
+
