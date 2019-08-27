@@ -1,0 +1,9 @@
+def test_moveMotoren(p1,p2)'{
+ 
+  tango_put("testmotor/mcs2motor/0","Position", p1)
+  tango_put("testmotor/mcs2motor/1","Position", p2)
+  
+  if (TANGO_ERR) {    
+    print("TEST: error opening the fast_shutter.")
+  }
+}'

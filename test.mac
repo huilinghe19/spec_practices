@@ -1,7 +1,9 @@
+
+
 #%TITLE% TEST.MAC
 #%NAME% TEST.MAC - TANGO attribute macro motors.
 #                     ============================
-#                        Copley Controller Motors
+#                       Smaract Controller Motors
 #                     ============================
 #
 #%DESCRIPTION%
@@ -13,16 +15,12 @@
 #%SETUP%
 #Motor and Counter Device Configuration (Not CAMAC)
 # MOTORS        DEVICE   ADDR  <>MODE  NUM                                 <>TYPE
-# YES          test    -                10                           Macro Motors
+# YES            test    -                10                           Macro Motors
 #
 # take care to set the NUM field to the good number of macro_motors you need.
 #
 #%EXAMPLE%
 #%DL%
-#
-#
-#%DT% test_setup tilt stepper/hhl/3    Position %DD%
-#    Set-up the TANGO attribute macro motor with the mnemonic "tilt"
 #
 #
 #%XDL%
@@ -91,23 +89,22 @@ def test_setup '{
   cdef("prompt_mac", "test_prompt\n","_test_")
 }'
 
-
 #    Removes reading of all attributes.
 def test_unsetup_all '{
     cdef("", "", "_test_", "delete")
 }'
 
-
 def test_prompt '{
    cdef("", "", "test_cleanup", "delete")
 }'
+
 def test_cmd(motnum, what, p1, p2) '{
     local _mot_mne  _dev  _attr
     local _pos_limit_sw  _neg_limit_sw _soft_pos_limit _soft_neg_limit
 
     _mot_mne = motor_mne(motnum)
-    _dev    = COPLEY[_mot_mne]["dev_name"]
-    _attr   = COPLEY[_mot_mne]["attr_name"]
+    _dev    = TEST[_mot_mne]["dev_name"]
+    _attr   = TEST[_mot_mne]["attr_name"]
     _target = _dev "/" _attr
   
 
@@ -123,14 +120,14 @@ def test_cmd(motnum, what, p1, p2) '{
         local _pos
           
         if (motor_par(motnum, "type") == -1){
-            cprint_red(sprintf("copey_cmd / position : motor %d is not defined", motnum))
+            cprint_red(sprintf("test_cmd / position : motor %d is not defined", motnum))
         }
         else{
             _pos = tango_get(_dev, _attr)
             print(_pos)
             if (TANGO_ERR) {
                tty_cntl("md")
-               print "\n" COPLEY_ERROR " " _mot_mne  " " _dev  "/"  _attr
+               print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
                printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
                print TANGO_ERR_STACK
                tty_cntl("me")
@@ -221,7 +218,7 @@ def test_cmd(motnum, what, p1, p2) '{
     # parameters: p2 is relative motion, p1 is absolute requested position
     if (what == "start_one") {
         tango_put(_dev, _attr, p1)
-        tango_io(_dev, "Move")
+        #tango_io(_dev, "Move")
         if (TANGO_ERR){
             tty_cntl("md")
             print "\n" " " _mot_mne  " " _dev  "/"  _attr
@@ -243,7 +240,7 @@ def test_cmd(motnum, what, p1, p2) '{
         return 
 	}
     if (what == "abort_one") {
-        tango_io(_dev, "StopMove")
+        tango_io(_dev, "Stop")
         if (TANGO_ERR){
             tty_cntl("md")
             print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
@@ -256,13 +253,3 @@ def test_cmd(motnum, what, p1, p2) '{
     }
 }'
 
-
-def test_moveMotoren(p1,p2)'{
- 
-  tango_put("testmotor/mcs2motor/0","Position", p1)
-  tango_put("testmotor/mcs2motor/1","Position", p2)
-  
-  if (TANGO_ERR) {    
-    print("TEST: error opening the fast_shutter.")
-  }
-}'
