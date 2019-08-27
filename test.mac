@@ -73,7 +73,7 @@ def test_setup '{
     global TEST_DEVICE OSCIL_MOTOR_NAME OSCIL_MOTOR_NUM
     global TEST_DEBUG
     if ($# != 2) {
-        TEST_DEVICE = getval("copley control tango device name:", TEST_DEVICE)
+        TEST_DEVICE = getval("smaract control tango device name:", TEST_DEVICE)
         OSCIL_MOTOR_NAME = getval("Oscillation motor name:", OSCIL_MOTOR_NAME) 
   } else {
         TEST_DEVICE = "$1"
@@ -101,46 +101,168 @@ def test_unsetup_all '{
 def test_prompt '{
    cdef("", "", "test_cleanup", "delete")
 }'
+def test_cmd(motnum, what, p1, p2) '{
+    local _mot_mne  _dev  _attr
+    local _pos_limit_sw  _neg_limit_sw _soft_pos_limit _soft_neg_limit
+
+    _mot_mne = motor_mne(motnum)
+    _dev    = COPLEY[_mot_mne]["dev_name"]
+    _attr   = COPLEY[_mot_mne]["attr_name"]
+    _target = _dev "/" _attr
+  
+
+    if(motnum == ".."){
+        # key applying to all motors
+        # print "--"
+    }
+
+    #-------------------------------------
+    # "position" must return dial position (in integer steps)
+    # parameters: none
+    if (what == "position") {
+        local _pos
+          
+        if (motor_par(motnum, "type") == -1){
+            cprint_red(sprintf("copey_cmd / position : motor %d is not defined", motnum))
+        }
+        else{
+            _pos = tango_get(_dev, _attr)
+            print(_pos)
+            if (TANGO_ERR) {
+               tty_cntl("md")
+               print "\n" COPLEY_ERROR " " _mot_mne  " " _dev  "/"  _attr
+               printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+               print TANGO_ERR_STACK
+               tty_cntl("me")
+               exit
+            }  
+        }
+        return (_pos)
+    }
+
+    #-------------------------------------
+    # "get_status" called during the motion, must return a bit mask
 
 
-def test_move '{
-  tango_io(TEST_DEVICE, "Move")
-  if (TANGO_ERR) {    
-    print("TEST: error opening the fast_shutter.")
-  }
+    # bits meaning: 0 if motor idle
+    #               2 if motor moving
+    #               4 if negative limit on
+    #               8 if positive limit on
+    #              16 if motor halted with emergency stop
+    #              32 if motor is faulty (spec >= 5.07.04-4
+    # parameters:   none
+    if (what == "get_status") {
+        local _state
+        local _ret
+        local _tmp
+
+        _ret = 0
+        # read arbitrary attribute because otherwise State attribute is not updated
+        #_tmp = tango_get(_dev, "Status")
+        _state = tango_io(_dev, "State")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+
+        if (_state == 6) {
+           #
+           # DEVMOVING
+           #
+            _ret |= 2
+            # return _ret
+        }
+        else if (_state == 8) {
+           #
+           # DEVFAULT
+                                                                           
+           #
+            _ret |= 32
+            # return _ret
+        }
+        else {
+            _ret = 0
+        }
+        # now check whether negative limit is set
+        _neg_limit_sw = tango_get(_dev, "CcwLimit")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        if (_neg_limit_sw > 0) {
+            _ret |= 4
+        }
+        # finally positive limit
+        _pos_limit_sw = tango_get(_dev, "CwLimit")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        if (_pos_limit_sw > 0) {
+            _ret |= 8
+        }
+        return _ret
+    }
+
+    #-------------------------------------
+    # "start_one"
+    # parameters: p2 is relative motion, p1 is absolute requested position
+    if (what == "start_one") {
+        tango_put(_dev, _attr, p1)
+        tango_io(_dev, "Move")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        return
+    }
+
+    #-------------------------------------
+
+    # "set_position" called on "set_dial motor newpos"
+    # parameters: p1 is the new position (in steps)
+    #
+    if (what == "set_position") {
+        tango_put(_dev, _attr, p1)
+        return 
+	}
+    if (what == "abort_one") {
+        tango_io(_dev, "StopMove")
+        if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" TEST_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+        }
+        return
+    }
 }'
 
-def test_getPosition '{
-  _position = tango_get(TEST_DEVICE, "Position")
-  print(_position)
-  if (TANGO_ERR) {    
-    print("TEST: error opening the fast_shutter.")
-  }
-}'
 
-
-def test_setPosition(newPosition) '{
+def test_moveMotoren(p1,p2)'{
  
-  tango_put(TEST_DEVICE, "Position", newPosition)
+  tango_put("testmotor/mcs2motor/0","Position", p1)
+  tango_put("testmotor/mcs2motor/1","Position", p2)
+  
   if (TANGO_ERR) {    
     print("TEST: error opening the fast_shutter.")
   }
 }'
-
-def test_getState'{
-  _state = tango_io(TEST_DEVICE, "State")
-  print(_state)
-  if (TANGO_ERR) {    
-    print("TEST: error opening the fast_shutter.")
-  }
-}'
-
-def test_getStatus'{
- 
-  _status  = tango_get(TEST_DEVICE, "Status")
-  print(_status)
-  if (TANGO_ERR) {    
-    print("TEST: error opening the fast_shutter.")
-  }
-}'
-
