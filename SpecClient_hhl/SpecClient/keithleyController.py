@@ -6,27 +6,18 @@ from sardana.pool.controller import CounterTimerController, Type,\
 import SpecMotor
 import SpecCommand 
 
-def read_network_counts(interface):
-    cmd = 'cat /proc/net/dev | grep {0}'.format(interface)
-    with os.popen(cmd) as fd:
-        output = fd.read()
-        bytes_raw = output.split()[1]
-        return int(bytes_raw)
     
 def read_keithley():
-    #m = SpecMotor.SpecMotor('copley', 'localhost:spec')
-    #print m.getPosition()
-    
     cmd = SpecCommand.SpecCommand('', 'localhost:spec')
-    #cmd.executeCommand("mv copley -2000")
-    #print m.getPosition()
-    a = cmd.executeCommand("gpib_put(16, '*idn/?')")
-    b = cmd.executeCommand("gpib_put(16, 'READ?')")
-    c = cmd.executeCommand("gpib_get(16)")
-    print a
-    print b
-    print c
-    return c
+    start_time = time.time()
+    
+    while True:	
+        cmd.executeCommand("gpib_put(16, 'READ?')")
+        getValue = cmd.executeCommand("gpib_get(16)")
+	print "get current1:" , getValue
+	if time.time() - start_time > 36000000000000:
+		break
+	return getValue
 
 class KeithleyController(CounterTimerController):
     """This controller provides interface for network packages counting.
@@ -82,10 +73,9 @@ class KeithleyController(CounterTimerController):
        
 
 
-keithleyValue= read_keithley()
-print keithleyValue
+#keithleyValue= read_keithley()
 controller = KeithleyController({"a":"b"},{"c":"dxY"})
 state = controller.StateOne(1)
 value = controller.ReadOne(1)
-print state
-print value
+#print state
+#print value
