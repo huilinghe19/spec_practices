@@ -1,4 +1,7 @@
 # spec_practices
+
+## spec with SmarAct MCS2 controller
+
 ===== Start MCS2 Tango Device Server =====
 
 1. Start SmarActMCS2Ctrl TangoDS 
