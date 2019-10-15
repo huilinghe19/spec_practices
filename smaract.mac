@@ -27,7 +27,8 @@
 
 # for color printing :)
 # need spec_utils
-
+#include <stdio.h>
+#include <stdlib.h>
 # Macro-MOTORS parameters.
 global SMARACT
 SMARACT_ERROR = "SMARACT: error on reading attribute macro motor"
@@ -147,7 +148,6 @@ def smaract_config(motnum, what, p1, p2) '{
        printf("SMARACT: Motor %10s linked to %s/%s\n", _mne, SMARACT[_mne]["dev_name"], SMARACT[_mne]["attr_name"])
     }
 }'
-
 def smaract_cmd(motnum, what, p1, p2) '{
     local _mot_mne  _dev  _attr
     local _pos_limit_sw  _neg_limit_sw _soft_pos_limit _soft_neg_limit
@@ -174,7 +174,6 @@ def smaract_cmd(motnum, what, p1, p2) '{
         }
         else{
             _pos = tango_get(_dev, _attr)
-            print(_pos)
             if (TANGO_ERR) {
                tty_cntl("md")
                print "\n" SMARACT_ERROR " " _mot_mne  " " _dev  "/"  _attr
@@ -184,7 +183,9 @@ def smaract_cmd(motnum, what, p1, p2) '{
                exit
             }  
         }
+	print _dev  " current position is: "  _pos " mm"
         return (_pos)
+	exit
     }
 
     #-------------------------------------
@@ -205,7 +206,7 @@ def smaract_cmd(motnum, what, p1, p2) '{
 
         _ret = 0
         # read arbitrary attribute because otherwise State attribute is not updated
-        #_tmp = tango_get(_dev, "Status")
+        _tmp = tango_get(_dev, "Status")
         _state = tango_io(_dev, "State")
         if (TANGO_ERR){
             tty_cntl("md")
@@ -217,22 +218,65 @@ def smaract_cmd(motnum, what, p1, p2) '{
         }
 
         if (_state == 6) {
-  
-	    #printf("Motor is Moving. State 6 is moving")
+	    print "\n"
+	    print  _dev " is Moving. (State 6)  \n\n"
            # DEVMOVING
            #
             _ret |= 2
             return _ret
-	    exit
+	    
         }
         else if (_state == 8) {
            #
            # DEVFAULT
-            #printf ("Motor is Fault. State 8 is Fault.")                                         
+	    #printf ("Motor is Fault. (State 8) \n")
+	    _soft_pos_limit = tango_get(_dev, "StepLimitMax")
+	    #print "soft pos limit is: " _soft_pos_limit "pm\n"
+            
+	    if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" SMARACT_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+            }
+            
+	    _soft_neg_limit = tango_get(_dev, "StepLimitMin")
+	    #print "soft neg limit is: " _soft_neg_limit "pm \n"
+            if (TANGO_ERR){
+            tty_cntl("md")
+            print "\n" SMARACT_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
+            print TANGO_ERR_STACK
+            tty_cntl("me")
+            exit
+            }
+ 
+            if (_soft_neg_limit == _soft_pos_limit && _soft_pos_limit == 0){
+	        print "soft limits are not set, check the hardware."
+            }
+           
+	    if (_soft_pos_limit > _soft_neg_limit){
+		print "Soft Pos Limit is set: " _soft_pos_limit/1000000000 " mm" 
+		print "Soft Neg Limit is set: " _soft_neg_limit/1000000000 " mm"
+		pos = tango_get(_dev, "Position")
+		 
+		diff_pos = pos - (_soft_pos_limit/1000000000)
+		print "Top distance: " diff_pos " mm"
+		if (diff_pos<0.05 && diff_pos> 0 ){
+	            print "Soft Pos Limit ON"
+		}
+		diff_neg = (_soft_neg_limit/1000000000) - pos
+		print "Bottom distance: " diff_neg " mm"
+		if (diff_neg < 0.05 && diff_neg >0 ){
+		    print "Soft Neg Limit ON"	
+		}
+	    }
            #
             _ret |= 32
             return _ret
-	    exit
+	    
         }
         else {
             _ret = 0
@@ -241,7 +285,7 @@ def smaract_cmd(motnum, what, p1, p2) '{
         _neg_limit_sw = 0 
         if (TANGO_ERR){
             tty_cntl("md")
-            print "\n" SMARACT_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            print "\n" DESY_MMOTE_ERROR " " _mot_mne  " " _dev  "/"  _attr
             printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
             print TANGO_ERR_STACK
             tty_cntl("me")
@@ -254,7 +298,7 @@ def smaract_cmd(motnum, what, p1, p2) '{
         _pos_limit_sw = 0
         if (TANGO_ERR){
             tty_cntl("md")
-            print "\n" SMARACT_ERROR " " _mot_mne  " " _dev  "/"  _attr
+            print "\n" DESY_MMOTE_ERROR " " _mot_mne  " " _dev  "/"  _attr
             printf ("TANGO_ERR_MSG = \"%s\" \n\n", TANGO_ERR)
             print TANGO_ERR_STACK
             tty_cntl("me")
@@ -306,4 +350,3 @@ def smaract_cmd(motnum, what, p1, p2) '{
         return
     }
 }'
-
