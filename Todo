@@ -1,0 +1,3 @@
+1, how to exit the spec console?
+2, hardware limit can be not set and known in spec, if the soft limit is set.
+3, if the position is in the end stop, then the reply in spec is not good.That means, the spec limit condition should be shorter as in tango. 
