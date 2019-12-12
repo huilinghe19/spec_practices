@@ -182,10 +182,10 @@ def smaract_cmd(motnum, what, p1, p2) '{
                tty_cntl("me")
                exit
             }  
-        }
-	print _dev  " current position is: "  _pos " mm"
-        return (_pos)
-	exit
+	#print _mot_mne  "  position is: "  _pos " mm"
+        
+	}
+	return (_pos)
     }
 
     #-------------------------------------
@@ -218,12 +218,13 @@ def smaract_cmd(motnum, what, p1, p2) '{
         }
 
         if (_state == 6) {
-	    print "\n"
-	    print  _dev " is Moving. (State 6)  \n\n"
+	    #print "\n"
+	    #print  _dev " is Moving. (State 6)  \n\n"
+	    #print _mot_mne " is Moving"
            # DEVMOVING
            #
             _ret |= 2
-            return _ret
+            #return _ret
 	    
         }
         else if (_state == 8) {
@@ -263,19 +264,19 @@ def smaract_cmd(motnum, what, p1, p2) '{
 		pos = tango_get(_dev, "Position")
 		 
 		diff_pos = pos - (_soft_pos_limit/1000000000)
-		print "Top distance: " diff_pos " mm"
+		#print "Top distance: " diff_pos " mm"
 		if (diff_pos<0.05 && diff_pos> 0 ){
 	            print "Soft Pos Limit ON"
 		}
 		diff_neg = (_soft_neg_limit/1000000000) - pos
-		print "Bottom distance: " diff_neg " mm"
+		#print "Bottom distance: " diff_neg " mm"
 		if (diff_neg < 0.05 && diff_neg >0 ){
 		    print "Soft Neg Limit ON"	
 		}
 	    }
            #
             _ret |= 32
-            return _ret
+            #return _ret
 	    
         }
         else {
