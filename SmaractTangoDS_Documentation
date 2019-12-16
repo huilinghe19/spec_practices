@@ -1,0 +1,184 @@
+Starting MCS2 Control System on BL 14.2
+Manuals
+
+    psfshare/groupdocs/bl14.2_endstation_upgrade/XYZ_Steller/SmarAct/Manuals
+
+General system informations
+
+    psfshare/groupdocs/bl14.2_endstation_upgrade/XYZ_Steller/SmarAct
+
+Start MCS2 Tango Device Server
+
+NOTE: The power of the MCS2 device must be ON before the TangoDS start.
+
+1. Start SmarActMCS2Ctrl TangoDS
+
+ cd   ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/tags/Release_1_2
+ ./bin/SmarActMCS2Ctrl  bl142
+
+(testctrl is an instance name. The instance name must be the same in jive)
+
+2. Start SmarActMCS2Motor TangoDS
+
+ cd  ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor/tags/Release_1_2
+ ./bin/SmarActMCS2Motor bl142
+
+(testmotor is an instance name. The instance name must be the same in jive)
+
+3. Open jive and check if the SmarActMCS2Ctrl and SmarActMCS2Motor TangoDS work well.
+
+4. Settings in the SmarActMCS2Motor TangoDS. In the property, the axis number for the 3 devices(testmotor/mcs2motor/0, testmotor/mcs2motor/1, testmotor/mcs2motor/2) are: 0, 1, 2, 3, 4, 5, 6, 7, which stands for the channel 0, 1, 2, 3, 4, 5, 6, 7 in telnet. Axis 0, 2, 4, 6 stand for the 4 long axises. Axis 1, 3, 5, 7 stand for the 4 short axises.
+
+In the attribute, Acceleration can be set as 0, Conversion can be set as 1000000000, MoveMode can be set as 0(absoulte, closed loop), SensorMode can be set as 1, SensorType can be got from the device, the SensorType of the long 4 axises are 550, the short are 549. Speed can be set as 10000000000. The actual range of the position is from -6mm to 6mm. UnitLimitMax and UnitLimitMin can be used to set the position limits. UnitLimitMin can be set such as -5mm. UnitLimitMax can be set such as 5mm. Init and Home method should work. Calibrate can be used to calibrate the hardware at the beginning just once, when the hardware is changed, then calibrate is needed.
+
+5. Once the device is powered off, one of the things you need to do after turning the power back on is Home for each Tango Device, otherwise the state of the Tango Device stays remain “Fault”, and the position value will be incorrect. It is also necessary to ensure that the power is turned on before the Tango DS is turned on. After homing, the device returns to the last held state, for example, the position and limit values ​​and the home position (position 0) remain unchanged. If the home position needs to be changed, then it is time to change the offset. If the tangoDS is changed, then the conversion must be changed as 1000000000.
+
+How to change the offset? At first, Home and move the motor to the home position which you expect. Then close the TangoDS. Open the telnet: telnet 192.168.1.200 55551
+
+The offset is calculated using the following equation: offset = ExpectedPositionValue - CurrentPositionValue.
+
+:chan<channel number>:lsc:off offset
+:chan<channel number>:pos ExpectedPositionValue(at the current position)
+
+NOTE: Before opening the telnet for setting the offset, Home must be completed in TangoDS. If not, you can set home with telnet.
+
+Here is an example: after home, we want to set the current 3.5mm position of channel 1 as expected 0mm position(Home position), then we move the motor to the current 3.5mm. offset = 0mm - 3.5mm = -3.5mm. In telnet:
+
+:chan1:lsc:off -3500000000
+:chan1:pos 0
+:chan1:pos?
+0
+
+Close the telnet, then open TangoDS, you can get the new position values, the software limits should be also changed.
+
+The above is about how to get home and change home position of a device. If a new device has never been homed, then below is the home procedure at the very beginning when you get a new device. Home procedure: at first, close the software limits in jive, then set the AutoMove as True, click the Home Commands in jive and set the AutoMove as false. That is all. Then you can get the unlimited position range.
+
+6. Documentation of SmarActMCS2Ctrl TangoDS: http://svn.code.sf.net/p/tango-ds/code/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/tags/Release_1_1/doc_html/index.html
+
+Documentation of SmarActMCS2Motor TangoDS: http://svn.code.sf.net/p/tango-ds/code/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor/tags/Release_1_1/doc_html/index.html
+Remote control from telnet
+
+1. Connect the controller using the command “telnet 192.168.1.200 55551”
+
+2. Send the commands such as “:DEV:SNUM?”, to get the serial number of the device. The commands should be all lowercase or all uppercase.
+
+3. Channel 0 – 7 work. For the test system, the channel 0-2 stands for the actual motor in x, y, z direction in Cartesian coordinate system. Channel 0 stands for the motor in x direction(the forward direction is positive). Channel 1 stands for the motor in y direction (the leftward direction is positive). Channel 2 stands for the motor in z direction(the downward direction is positive). This is a manually set coordinate system based on the current placement environment. In general, the actual motor corresponding to the specific channel can be known in the test session with different channel commands.
+
+4. Get the properties of the channels.
+
+To get state of channel 0: “:CHAN0:STAT?”.
+
+To get position of channel 0: “:CHAN0:POS?”.
+
+To get the velocity of channel 0: “:CHANO:VEL?”.
+
+To get the move mode of channel 0: “:CHANO:MMOD?”.
+
+If a property value is not defined, then there is no answer.
+
+5. Set the properties of the channels
+
+To set the move mode of channel 0: “:CHANO:MMOD 0”.
+
+To set the velocity of channel 0: “:CHANO:VEL 1000000000”.
+
+To set the acceleration of channel 0: “:CHAN0:ACC 0”.
+
+To set the positioner type of channel 0:“:CHAN0:PTYP 345”.
+
+In the initialization phase, the values of above properties should be set at first.
+
+6. Move the motor.
+
+//set move mode as closed loop absolute for channel 0 
+:CHAN0:MMOD 0
+// set move velocity (pm/s)
+:CHAN0:VEL 1000000000
+//disable acceleration control 
+:CHAN0:ACC 0
+// set channel 0 positioner type as 345. In the future, the positioner type must be changed as "348" (short, horizontal shift)and "349"(long, vertical shift).
+:CHAN0:PTYP 550
+// start actual movement 
+//absolute position(in pm)
+:MOVE0 5000000000
+
+Remote control from PuTTy
+
+Open putty and configure the session as mcs2_telnet, then open the session and send the mcs2 control commands to the controller. (Due to the putty timeout problem, this method does not work. In theory, this method is feasible.)
+Spec Control
+
+1. Open spec using command “spec”. Once some attributes such as move mode or limits through telnet or TangoDS are already set, then they stay always the same before the next change.
+
+2. In spec, there are 8 macro motors, 3 spec MCS2 motors. “bstopy” “bstopz” and so on, are spec macro motors connected with the SmarActMCS2Motor TangoDS. “test”, “test2”, “test3” are spec MCS2 motors. Because of the only one socket, these 2 types can not be used at the same time. If the macro motors are chosen to control the motors, then “SmarAct MCS2(Socket)” controller on spec controller screen must be set as OFF at first. Then open the SmarActMCS2Ctrl and SmarActMCS2Motor TangoDS, SPEC in oder. If the spec MCS2 motors are chosen to control the motors, then the SmarActMCS2Ctrl TangoDS must be closed at first. “SmarAct MCS2(Socket)” controller on spec controller screen must be set as ON. During these two transitions, it may take some time. If problems occur, wait a few minutes and try again.
+
+3. Usng “config” new motors can be added. “mv bstopy 1” or “mv bstopy -1 bstopz 1” can be used to move the macro motors. The macro file “smaract.mac” under “/home/localadmin/macros/” is used. (https://github.com/huilinghe19/spec_practices/blob/master/smaract.mac)
+
+3. The spec MCS2 motors used to control the devices are: “test”(channel 0), “test2”(channel 1), “test3”(channel 2). “mv test 1” can be used to move the motor(channel 0). In the configuration phase, “SmarAct MCS2(Socket)” controller Type on the Devices screen and “MCS2_E” on the Motor screen to use closed-loop mode should be set.
+
+4. If several motors have the same controller, then it is a must to set 0/0, 0/1,… in unit/channel on the Motor screen. For the 8 macro motors, the 0/0, …, 0/7 must be set. When you have set this, the spec motors must be defined in spec using smaract_setup: smaract_setup bstopz testmotor/mcs2motor/6 position. Then you can get the motor position.
+Install SmarActMCS2Ctrl TangoDS and SmarActMCS2Motor TangoDS
+
+1. Make new folders
+
+mkdir -p ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor
+mkdir -p ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl
+mkdir -p ~/tango/Libraries/cppserver/
+
+2. Get the resources
+
+cd ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl
+mkdir tags
+cd tags
+svn co https://tkracht@svn.code.sf.net/p/tango-ds/code/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/tags/Release_1_2
+cd ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor
+mkdir tags
+cd tags
+svn co https://tkracht@svn.code.sf.net/p/tango-ds/code/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor/tags/Release_1_2
+cd ~/tango/Libraries/cppserver 
+svn co https://tkracht@svn.code.sf.net/p/tango-ds/code/Libraries/cppserver/common
+
+3. Compile the programs
+
+export TANGO_DIR=~/tango/
+cd ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/tags/Release_1_2
+make
+cd ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor/tags/Release_1_2 
+make
+
+(In the Makefile of the SmarActMCS2Motor, the “PICOSCALESUPPORT ?= no” must be set. subversion should be installed in oder to use svn. In Makefile of the SmarActMCS2Motor, the path of the controller is also defined.
+
+“”“
+
+  ifeq ($(usetrunk), 1)
+      CTRLDIR = $(TANGO_DIR)/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/trunk
+      RELEASE_TYPE = DEBUG
+  endif
+  ifeq ($(usetrunk), 0)
+      CTRLDIR = $(shell find $(TANGO_DIR)/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl/tags   -type d -regex '.*Release_[0-9]*_[0-9]*' | sort -t '_' -k2 -k3 -nr | head$
+      RELEASE_TYPE = OPTIMIZED
+  endif
+
+”“” )
+
+4. Changes
+
+On esc142, it is necessary to make some changes to adapt the existing system for compling TangoDS:
+
+Use 1.2 Version for the controller TangoDS
+
+Use export TANGO_DIR =/usr/src/tango-ds-code.
+
+Add #include <bessy_tango7.h> wherever the TANGO_BASE_CLASS occurs.
+
+The gcc version must be changed to compile the tango DS.
+Add SmarActMCS2Ctrl TangoDS in jive
+
+1. Make sure the SmarActMCS2Ctrl TangoDS is already running at first.
+
+2. Open jive, jive » Tools » Server Wizard » Server Registration » Server name: SmarActMCS2Ctrl, Instance name: testctrl » Start the server » Class Selection » Declare device » Device Name: testctrl/mcs2ctrl/1 » Hostname :192.168.1.200 » PortNummer: 55551 »ConnectType: net »USBID (not used, pass) »PicoScaleHostName (not used, pass) »PicoScaleUSBID (not used, pass) » PicoScaleConnectType (not used, pass) » Configuration Done.
+Add SmarActMCS2Motor TangoDS in jive
+
+1. Make sure the SmarActMCS2Motor TangoDS is already running at first.
+
+2. Open jive. jive » Tools » Server Wizard » Server Registration » Server name: SmarActMCS2Motor, Instance name: testmotor » Start the server » Class Selection » Declare device » Device Name: testmotor/mcs2motor/1 »SmarActMCS2CtrlDevice: testctrl/mcs2ctrl/1 » AxisNummer: 0 » PicoScaleEncoded: false » Configuration Done.
+
