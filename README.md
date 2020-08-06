@@ -1,6 +1,6 @@
 # spec_practices
 
-   Spec can not be opened under specadm after version update(from debian to buster)on 06.08.2020
+   Spec can not be opened after version update(from debian to buster)on 06.08.2020, because the package libomniORB4.so.1 does not exist in this version. It exists only in debian strech version.
    
       >>> ssh -X specadm@localhost(root password)
       >>> /usr/local/spec/bin/spec
