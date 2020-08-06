@@ -1,5 +1,15 @@
 # spec_practices
 
+   Spec can not be opened under specadm after version update(from debian to buster)on 06.08.2020
+   
+      >>> ssh -X specadm@localhost(root password)
+      >>> /usr/local/spec/bin/spec
+      """error while loading shared libraries: libomniORB4.so.1: cannot open shared object file: No such file or directory"""
+
+
+
+
+
 ## spec with SmarAct MCS2 controller
 
 ===== Start MCS2 Tango Device Server =====
