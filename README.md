@@ -27,7 +27,7 @@
       warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
       libomniorb4-4.1.7-8.mga5.i586.rpm is for architecture i386 ; the package cannot be built on this system
 
- I can not install libomniorb4-4.1 on buster system. libomniorb4-4.2 in on buster system. I can not use spec any more.
+ I have downloaded a package "libomniorb4-4.1.7-8.mga5.i586.rpm" But I can not install this package on buster system. libomniorb4-4.2 in on buster system. I can not use spec any more (07.08.2020).
 
 
 ## spec with SmarAct MCS2 controller
@@ -148,7 +148,7 @@ Open putty and configure the session as mcs2_telnet, then open the session and s
 
 1. Make new folders
 
-  mkdir -p ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motor
+  mkdir -p ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Motorlibomniorb4-4.1.7-8.mga5.i586.rpm
   mkdir -p ~/tango/DeviceClasses/Motion/MotorControllers/Smaract/SmarActMCS2Ctrl
   mkdir -p ~/tango/Libraries/cppserver/
 2. Get the resources
