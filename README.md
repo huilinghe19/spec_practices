@@ -6,8 +6,28 @@
       >>> /usr/local/spec/bin/spec
       """error while loading shared libraries: libomniORB4.so.1: cannot open shared object file: No such file or directory"""
 
+      >>>  sudo alien -d libomniorb4-4.1.7-8.mga5.i586.rpm 
 
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      warning: libomniorb4-4.1.7-8.mga5.i586.rpm: Header V3 RSA/SHA1 Signature, key ID 80420f66: NOKEY
+      libomniorb4-4.1.7-8.mga5.i586.rpm is for architecture i386 ; the package cannot be built on this system
 
+ I can not install libomniorb4-4.1 on buster system. libomniorb4-4.2 in on buster system. I can not use spec any more.
 
 
 ## spec with SmarAct MCS2 controller
